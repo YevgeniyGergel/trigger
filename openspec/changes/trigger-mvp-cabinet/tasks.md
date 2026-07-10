@@ -101,11 +101,11 @@
 
 ## 10. Production Deployment
 
-- [ ] 10.1 Provision managed Postgres, object storage, and KMS/secrets manager in production — all in EU region (Frankfurt/Amsterdam)
-- [ ] 10.2 Configure Vercel deployment region to EU (`fra1`) for production
-- [ ] 10.3 Configure production environment variables and LiqPay production credentials in Vercel, including `TZ=Europe/Kyiv` (required — Vercel functions default to UTC, which would shift all schedule/slot times by 2-3 hours)
-- [ ] 10.4 Configure production deploy trigger on merge to `main` (via the CI/CD pipeline set up in section 1)
-- [ ] 10.5 Run Prisma migrations against the production database as part of the deploy step
-- [ ] 10.6 Verify LiqPay webhook and Telegram bot webhook reachable from production URL
-- [ ] 10.7 Smoke test full flow in production environment
-- [ ] 10.8 Set up basic uptime/error monitoring (e.g. Vercel Analytics + Sentry) and alerting for webhook and job failures
+- [ ] 10.1 Provision managed Postgres, object storage, and KMS/secrets manager in production — all in EU region (Frankfurt/Amsterdam) (manual: requires Neon/Railway/R2/KMS accounts)
+- [ ] 10.2 Configure Vercel deployment region to EU (`fra1`) for production (manual: requires Vercel account)
+- [ ] 10.3 Configure production environment variables and LiqPay production credentials in Vercel, including `TZ=Europe/Kyiv` (required — Vercel functions default to UTC, which would shift all schedule/slot times by 2-3 hours) (manual: requires Vercel account + production LiqPay merchant credentials)
+- [ ] 10.4 Configure production deploy trigger on merge to `main` (via the CI/CD pipeline set up in section 1) (manual: requires Vercel account, see 1.9)
+- [x] 10.5 Run Prisma migrations against the production database as part of the deploy step (`vercel-build` script now runs `prisma migrate deploy` before `next build`)
+- [ ] 10.6 Verify LiqPay webhook and Telegram bot webhook reachable from production URL (manual: requires a deployed production URL)
+- [ ] 10.7 Smoke test full flow in production environment (manual: requires a deployed production URL)
+- [ ] 10.8 Set up basic uptime/error monitoring (e.g. Vercel Analytics + Sentry) and alerting for webhook and job failures (baseline: `instrumentation.ts` logs every uncaught request error in a consistent shape; full Sentry integration + alerting rules still require provisioning a monitoring account)

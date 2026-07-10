@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "cross-env TZ=Europe/Kyiv next dev",
     "build": "cross-env TZ=Europe/Kyiv next build",
+    "vercel-build": "prisma migrate deploy && cross-env TZ=Europe/Kyiv next build",
     "start": "cross-env TZ=Europe/Kyiv next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
