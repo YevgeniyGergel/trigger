@@ -1,0 +1,75 @@
+import { Prisma, PrismaClient } from "@prisma/client";
+
+type Queryable = PrismaClient | Prisma.TransactionClient;
+
+export type SlotConflictReason = "outside_working_hours" | "blocked" | "session_overlap";
+
+function isWithinWorkingHours(
+  workingHours: { startTime: string; endTime: string }[],
+  startAt: Date,
+  endAt: Date
+): boolean {
+  return workingHours.some((rule) => {
+    const [startHours, startMinutes] = rule.startTime.split(":").map(Number);
+    const [endHours, endMinutes] = rule.endTime.split(":").map(Number);
+
+    const ruleStart = new Date(startAt);
+    ruleStart.setHours(startHours, startMinutes, 0, 0);
+    const ruleEnd = new Date(startAt);
+    ruleEnd.setHours(endHours, endMinutes, 0, 0);
+
+    return startAt >= ruleStart && endAt <= ruleEnd;
+  });
+}
+
+/**
+ * Single source of truth for "can this psychologist be booked for
+ * [startAt, endAt)": used by both the public booking flow and the cabinet
+ * reschedule flow so working-hours/blocked-range/overlap rules can't drift
+ * between the two. Always call this from inside the caller's own
+ * Serializable transaction — it only reads, the caller decides how the
+ * write (or its absence) is committed.
+ */
+export async function checkSlotConflict(
+  tx: Queryable,
+  params: {
+    psychologistId: string;
+    startAt: Date;
+    endAt: Date;
+    excludeSessionId?: string;
+  }
+): Promise<SlotConflictReason | null> {
+  const { psychologistId, startAt, endAt, excludeSessionId } = params;
+
+  const workingHours = await tx.workingHour.findMany({
+    where: { psychologistId, weekday: startAt.getDay() },
+    select: { startTime: true, endTime: true },
+  });
+  if (!isWithinWorkingHours(workingHours, startAt, endAt)) {
+    return "outside_working_hours";
+  }
+
+  const blocked = await tx.blockedRange.findFirst({
+    where: { psychologistId, startAt: { lt: endAt }, endAt: { gt: startAt } },
+    select: { id: true },
+  });
+  if (blocked) {
+    return "blocked";
+  }
+
+  const sessionConflict = await tx.session.findFirst({
+    where: {
+      psychologistId,
+      status: { in: ["PENDING", "CONFIRMED"] },
+      startAt: { lt: endAt },
+      endAt: { gt: startAt },
+      ...(excludeSessionId ? { id: { not: excludeSessionId } } : {}),
+    },
+    select: { id: true },
+  });
+  if (sessionConflict) {
+    return "session_overlap";
+  }
+
+  return null;
+}

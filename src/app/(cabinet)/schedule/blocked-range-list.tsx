@@ -3,6 +3,8 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { removeBlockedRange } from "./actions";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 type Range = {
   id: string;
@@ -16,19 +18,29 @@ export function BlockedRangeList({ ranges }: { ranges: Range[] }) {
   const router = useRouter();
 
   if (ranges.length === 0) {
-    return <p className="mt-4 text-gray-600">Заблокованих періодів немає.</p>;
+    return (
+      <p className="mt-4 text-sm text-ink-muted">Заблокованих періодів немає.</p>
+    );
   }
 
   return (
-    <ul className="mt-4 divide-y rounded border bg-white">
+    <Card className="mt-4 divide-y divide-line overflow-hidden">
       {ranges.map((range) => (
-        <li key={range.id} className="flex items-center justify-between px-4 py-3">
-          <span>
-            {range.startAt.toLocaleString("uk-UA")} — {range.endAt.toLocaleString("uk-UA")}
-            {range.reason ? ` · ${range.reason}` : ""}
+        <div
+          key={range.id}
+          className="flex items-center justify-between gap-4 px-5 py-3.5"
+        >
+          <span className="text-sm text-ink">
+            {range.startAt.toLocaleString("uk-UA")} —{" "}
+            {range.endAt.toLocaleString("uk-UA")}
+            {range.reason ? (
+              <span className="text-ink-muted"> · {range.reason}</span>
+            ) : null}
           </span>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             disabled={pending}
             onClick={() =>
               startTransition(async () => {
@@ -36,12 +48,12 @@ export function BlockedRangeList({ ranges }: { ranges: Range[] }) {
                 router.refresh();
               })
             }
-            className="text-sm text-red-600 hover:underline disabled:opacity-50"
+            className="text-danger hover:bg-danger-soft hover:text-danger"
           >
             Видалити
-          </button>
-        </li>
+          </Button>
+        </div>
       ))}
-    </ul>
+    </Card>
   );
 }

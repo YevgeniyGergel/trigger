@@ -42,27 +42,27 @@
 
 ## 5. Public Booking
 
-- [ ] 5.1 Implement public booking page at psychologist's slug URL showing available slots
-- [ ] 5.2 Implement "no availability" empty state
-- [ ] 5.3 Implement booking submission form (name, phone/email) creating a pending `Session` and linking/creating `Client`
-- [ ] 5.4 Implement concurrency-safe slot reservation (prevent double-booking same slot)
-- [ ] 5.5 Implement rate limiting on booking submissions by IP and contact identifier
-- [ ] 5.6 Implement psychologist actions: confirm, cancel, reschedule a session
-- [ ] 5.7 Free up slot in availability when a session is cancelled
+- [x] 5.1 Implement public booking page at psychologist's slug URL showing available slots
+- [x] 5.2 Implement "no availability" empty state
+- [x] 5.3 Implement booking submission form (name, phone/email) creating a pending `Session` and linking/creating `Client`
+- [x] 5.4 Implement concurrency-safe slot reservation (prevent double-booking same slot)
+- [x] 5.5 Implement rate limiting on booking submissions by IP and contact identifier
+- [x] 5.6 Implement psychologist actions: confirm, cancel, reschedule a session
+- [x] 5.7 Free up slot in availability when a session is cancelled
 
 ## 6. Payment Processing (LiqPay)
 
-- [ ] 6.1 Define Prisma schema for `Payment` (sessionId, provider, amount, status, providerTransactionId)
-- [ ] 6.2 Implement default session price application and per-session price override
-- [ ] 6.3 Implement psychologist payment settings UI to enter LiqPay `public_key`/`private_key`, with `private_key` encrypted via KMS-backed application-level encryption
-- [ ] 6.4 Implement test/production mode flag and label test transactions in the UI
-- [ ] 6.5 Integrate LiqPay checkout link generation for a session's price in UAH, including `rro_info` (client email) for fiscal receipt delivery
-- [ ] 6.6 Implement client-facing payment page/redirect flow
-- [ ] 6.7 Implement LiqPay webhook endpoint with signature verification
-- [ ] 6.8 Update session payment status (pending/paid/failed/refunded) from verified webhook events
-- [ ] 6.9 Reject and log webhook requests with invalid/missing signatures
-- [ ] 6.10 Display payment status in session list and calendar views
-- [ ] 6.11 Implement payment retry flow for failed/abandoned payments
+- [x] 6.1 Define Prisma schema for `Payment` (sessionId, provider, amount, status, providerTransactionId)
+- [x] 6.2 Implement default session price application and per-session price override
+- [x] 6.3 Implement psychologist payment settings UI to enter LiqPay `public_key`/`private_key`, with `private_key` encrypted via KMS-backed application-level encryption
+- [x] 6.4 Implement test/production mode flag and label test transactions in the UI
+- [x] 6.5 Integrate LiqPay checkout link generation for a session's price in UAH, including `rro_info` (client email) for fiscal receipt delivery
+- [x] 6.6 Implement client-facing payment page/redirect flow
+- [x] 6.7 Implement LiqPay webhook endpoint with signature verification
+- [x] 6.8 Update session payment status (pending/paid/failed/refunded) from verified webhook events
+- [x] 6.9 Reject and log webhook requests with invalid/missing signatures
+- [x] 6.10 Display payment status in session list and calendar views
+- [x] 6.11 Implement payment retry flow for failed/abandoned payments
 
 ## 7. Session Notes (Voice + Transcription + SOAP)
 

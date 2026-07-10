@@ -3,6 +3,8 @@ import { requireCurrentPsychologist } from "@/lib/current-psychologist";
 import { WorkingHoursForm } from "./working-hours-form";
 import { BlockedRangeForm } from "./blocked-range-form";
 import { BlockedRangeList } from "./blocked-range-list";
+import { PageHeader, SectionTitle } from "@/components/ui/page-header";
+import { Card, CardBody } from "@/components/ui/card";
 
 export default async function SchedulePage() {
   const psychologist = await requireCurrentPsychologist();
@@ -20,26 +22,40 @@ export default async function SchedulePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Розклад</h1>
+      <PageHeader
+        eyebrow="Ритм тижня"
+        title="Розклад"
+        description="Робочі години визначають, коли клієнти бачать вільні слоти для запису."
+      />
 
-      <section>
-        <h2 className="mt-6 text-lg font-semibold">Робочі години</h2>
-        {/* Keyed on the fetched data so a successful save (which revalidates
-            this server component but keeps WorkingHoursForm mounted) forces
-            a remount — otherwise the form's uncontrolled defaultChecked/
-            defaultValue inputs would keep showing stale pre-save values,
-            since React only applies those on initial mount. */}
-        <WorkingHoursForm
-          key={JSON.stringify(workingHours.map((r) => [r.weekday, r.startTime, r.endTime]))}
-          initialRules={workingHours}
-        />
-      </section>
+      <div className="mt-8 grid gap-8 lg:grid-cols-2">
+        <section>
+          <SectionTitle>Робочі години</SectionTitle>
+          <Card className="mt-4">
+            <CardBody>
+              {/* Keyed on the fetched data so a successful save (which revalidates
+                  this server component but keeps WorkingHoursForm mounted) forces
+                  a remount — otherwise the form's uncontrolled defaultChecked/
+                  defaultValue inputs would keep showing stale pre-save values,
+                  since React only applies those on initial mount. */}
+              <WorkingHoursForm
+                key={JSON.stringify(workingHours.map((r) => [r.weekday, r.startTime, r.endTime]))}
+                initialRules={workingHours}
+              />
+            </CardBody>
+          </Card>
+        </section>
 
-      <section>
-        <h2 className="mt-8 text-lg font-semibold">Заблоковані періоди</h2>
-        <BlockedRangeForm />
-        <BlockedRangeList ranges={blockedRanges} />
-      </section>
+        <section>
+          <SectionTitle>Заблоковані періоди</SectionTitle>
+          <Card className="mt-4">
+            <CardBody>
+              <BlockedRangeForm />
+            </CardBody>
+          </Card>
+          <BlockedRangeList ranges={blockedRanges} />
+        </section>
+      </div>
     </div>
   );
 }

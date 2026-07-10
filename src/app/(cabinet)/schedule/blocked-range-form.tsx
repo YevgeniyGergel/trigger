@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 import { addBlockedRange, type BlockedRangeFormState } from "./actions";
+import { Button } from "@/components/ui/button";
+import { Input, Label } from "@/components/ui/field";
+import { Alert } from "@/components/ui/alert";
 
 const initialState: BlockedRangeFormState = {};
 
@@ -35,46 +38,40 @@ export function BlockedRangeForm() {
   }
 
   return (
-    <form action={formAction} className="mt-4 flex flex-wrap items-end gap-3">
-      <div>
-        <label htmlFor="startAt" className="block text-sm font-medium">
-          Від
-        </label>
-        <input
-          id="startAt"
-          name="startAt"
-          type="datetime-local"
-          required
-          value={startAt}
-          onChange={(e) => setStartAt(e.target.value)}
-          className="mt-1 rounded border px-3 py-2"
-        />
+    <form action={formAction} className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="startAt">Від</Label>
+          <Input
+            id="startAt"
+            name="startAt"
+            type="datetime-local"
+            required
+            value={startAt}
+            onChange={(e) => setStartAt(e.target.value)}
+          />
+        </div>
+        <div>
+          <Label htmlFor="endAt">До</Label>
+          <Input
+            id="endAt"
+            name="endAt"
+            type="datetime-local"
+            required
+            value={endAt}
+            onChange={(e) => setEndAt(e.target.value)}
+          />
+        </div>
       </div>
       <div>
-        <label htmlFor="endAt" className="block text-sm font-medium">
-          До
-        </label>
-        <input
-          id="endAt"
-          name="endAt"
-          type="datetime-local"
-          required
-          value={endAt}
-          onChange={(e) => setEndAt(e.target.value)}
-          className="mt-1 rounded border px-3 py-2"
-        />
-      </div>
-      <div>
-        <label htmlFor="reason" className="block text-sm font-medium">
-          Причина
-        </label>
-        <input
+        <Label htmlFor="reason">Причина</Label>
+        <Input
           id="reason"
           name="reason"
           type="text"
+          placeholder="Відпустка, навчання..."
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          className="mt-1 rounded border px-3 py-2"
         />
       </div>
       {/* Tie confirmation to the exact range the warning was issued for: if
@@ -84,24 +81,19 @@ export function BlockedRangeForm() {
           flag for a range it never actually warned about. */}
       <input type="hidden" name="confirmedForStart" value={state.confirmedFor?.startAt ?? ""} />
       <input type="hidden" name="confirmedForEnd" value={state.confirmedFor?.endAt ?? ""} />
-      <button
+
+      {state.error ? <Alert tone="danger">{state.error}</Alert> : null}
+      {state.conflictWarning ? (
+        <Alert tone="warning">{state.conflictWarning}</Alert>
+      ) : null}
+
+      <Button
         type="submit"
+        variant={awaitingConfirmation ? "danger" : "primary"}
         disabled={pending}
-        className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
       >
         {pending ? "Збереження..." : awaitingConfirmation ? "Блокувати попри це" : "Заблокувати"}
-      </button>
-
-      {state.error ? (
-        <p className="w-full text-sm text-red-600" role="alert">
-          {state.error}
-        </p>
-      ) : null}
-      {state.conflictWarning ? (
-        <p className="w-full text-sm text-amber-600" role="alert">
-          {state.conflictWarning}
-        </p>
-      ) : null}
+      </Button>
     </form>
   );
 }

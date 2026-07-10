@@ -1,26 +1,81 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+  Trigger design tokens — "спокійний преміум".
+  Тепла нейтральна палітра (sand), шавлієвий акцент (sage),
+  serif-заголовки, м'які тіні. Темна тема додається пізніше
+  перевизначенням цих змінних.
+*/
+@theme {
+  /* Fonts (підключаються через next/font у root layout) */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-lora), Georgia, "Times New Roman", serif;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Warm neutrals — sand */
+  --color-sand-50: #faf8f4;
+  --color-sand-100: #f4f0e8;
+  --color-sand-200: #e9e2d4;
+  --color-sand-300: #d9cfbc;
+  --color-sand-400: #bfb098;
+  --color-sand-500: #a3927a;
+  --color-sand-600: #86755e;
+  --color-sand-700: #6b5d4b;
+  --color-sand-800: #52473a;
+  --color-sand-900: #3d352c;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Sage accent */
+  --color-sage-50: #f2f5f0;
+  --color-sage-100: #e2eadf;
+  --color-sage-200: #c7d6c1;
+  --color-sage-300: #a3bb9c;
+  --color-sage-400: #7f9e77;
+  --color-sage-500: #62855b;
+  --color-sage-600: #4d6c47;
+  --color-sage-700: #3e5639;
+  --color-sage-800: #33452f;
+  --color-sage-900: #2a3927;
+
+  /* Semantic ink (warm near-black text) */
+  --color-ink: #221f1a;
+  --color-ink-muted: #6d665a;
+  --color-ink-faint: #9b937f;
+
+  /* Surfaces & lines */
+  --color-surface: #fffdf9;
+  --color-line: #e9e2d4;
+
+  /* Status */
+  --color-success: #3e7a4e;
+  --color-success-soft: #e9f3ec;
+  --color-warning: #9a6b1f;
+  --color-warning-soft: #faf1de;
+  --color-danger: #b4423a;
+  --color-danger-soft: #f9ebea;
+  --color-info: #3f6d8e;
+  --color-info-soft: #e9f1f6;
+
+  /* Soft elevation */
+  --shadow-soft: 0 1px 2px rgb(61 53 44 / 0.05), 0 4px 12px rgb(61 53 44 / 0.06);
+  --shadow-lifted: 0 2px 4px rgb(61 53 44 / 0.06), 0 12px 32px rgb(61 53 44 / 0.1);
+
+  --radius-card: 1rem;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-sand-50);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background-color: var(--color-sage-200);
+}
+
+/* Спокійний, помітний фокус для клавіатурної навігації */
+:focus-visible {
+  outline: 2px solid var(--color-sage-500);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
