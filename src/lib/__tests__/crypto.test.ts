@@ -1,8 +1,9 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { encryptSecret, decryptSecret } from "../crypto";
+import { encryptSecret, decryptSecret, encryptNoteText, decryptNoteText } from "../crypto";
 
 beforeAll(() => {
   process.env.CREDENTIALS_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString("base64");
+  process.env.NOTE_ENCRYPTION_KEY = Buffer.alloc(32, 9).toString("base64");
 });
 
 describe("encryptSecret / decryptSecret", () => {
@@ -25,5 +26,19 @@ describe("encryptSecret / decryptSecret", () => {
     const tampered = Buffer.from(encrypted, "base64");
     tampered[tampered.length - 1] ^= 0xff;
     expect(() => decryptSecret(tampered.toString("base64"))).toThrow();
+  });
+});
+
+describe("encryptNoteText / decryptNoteText", () => {
+  it("round-trips session-note transcript text", () => {
+    const transcript = "Клієнт розповів про...";
+    const encrypted = encryptNoteText(transcript);
+    expect(encrypted).not.toContain(transcript);
+    expect(decryptNoteText(encrypted)).toBe(transcript);
+  });
+
+  it("uses a different key from encryptSecret — ciphertexts aren't interchangeable", () => {
+    const encrypted = encryptNoteText("shared-plaintext");
+    expect(() => decryptSecret(encrypted)).toThrow();
   });
 });

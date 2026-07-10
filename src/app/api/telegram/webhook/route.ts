@@ -10,7 +10,21 @@ type TelegramUpdate = {
 };
 
 export async function POST(request: Request) {
-  const update = (await request.json()) as TelegramUpdate;
+  // Telegram sets this header on every request to a webhook registered with
+  // a secret_token (setWebhook) — without it, anyone who discovers this URL
+  // could forge /start <token> requests and link arbitrary chat IDs.
+  const secretHeader = request.headers.get("x-telegram-bot-api-secret-token");
+  if (!process.env.TELEGRAM_WEBHOOK_SECRET || secretHeader !== process.env.TELEGRAM_WEBHOOK_SECRET) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  let update: TelegramUpdate;
+  try {
+    update = (await request.json()) as TelegramUpdate;
+  } catch {
+    return NextResponse.json({ error: "malformed body" }, { status: 400 });
+  }
+
   const message = update.message;
   const text = message?.text;
 

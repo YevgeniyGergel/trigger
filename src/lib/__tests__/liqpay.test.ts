@@ -80,6 +80,21 @@ describe("buildLiqpayCheckout", () => {
     const payload = JSON.parse(Buffer.from(withEmail.data, "base64").toString("utf8"));
     expect(payload.rro_info).toEqual({ delivery_emails: ["client@example.com"] });
   });
+
+  it("omits rro_info when no email is provided", () => {
+    const withoutEmail = buildLiqpayCheckout({
+      publicKey: "pub",
+      privateKey: "priv",
+      amountUah: 100,
+      orderId: "o1",
+      description: "d",
+      resultUrl: "https://example.com",
+      serverUrl: "https://example.com",
+      sandbox: false,
+    });
+    const payload = JSON.parse(Buffer.from(withoutEmail.data, "base64").toString("utf8"));
+    expect(payload.rro_info).toBeUndefined();
+  });
 });
 
 describe("decodeLiqpayData", () => {

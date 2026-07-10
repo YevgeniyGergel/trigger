@@ -91,13 +91,13 @@
 
 ## 9. Cross-Cutting Hardening
 
-- [ ] 9.1 Add encryption at rest for stored audio files and verify storage bucket access policy
-- [ ] 9.2 Add input validation and error handling across all public-facing endpoints (booking, payment webhook, Telegram linking)
-- [ ] 9.3 Write integration tests for booking flow (slot generation, concurrent booking, cancellation)
-- [ ] 9.4 Write integration tests for payment flow (checkout generation, webhook signature verification, status transitions, fiscal receipt request)
-- [ ] 9.5 Write integration tests for notes flow (recording upload, transcription status transitions, SOAP structuring, encryption, access control)
-- [ ] 9.6 Write integration tests for notifications (booking confirmation, reminder timing, Telegram fallback to email)
-- [ ] 9.7 Manual end-to-end pass: register psychologist → connect LiqPay → set availability → public booking → payment → voice note → SOAP review → notifications received
+- [x] 9.1 Add encryption at rest for stored audio files and verify storage bucket access policy
+- [x] 9.2 Add input validation and error handling across all public-facing endpoints (booking, payment webhook, Telegram linking)
+- [x] 9.3 Write integration tests for booking flow (slot generation, concurrent booking, cancellation)
+- [x] 9.4 Write integration tests for payment flow (checkout generation, webhook signature verification, status transitions, fiscal receipt request)
+- [x] 9.5 Write integration tests for notes flow (recording upload, transcription status transitions, SOAP structuring, encryption, access control)
+- [x] 9.6 Write integration tests for notifications (booking confirmation, reminder timing, Telegram fallback to email)
+- [ ] 9.7 Manual end-to-end pass: register psychologist → connect LiqPay → set availability → public booking → payment → voice note → SOAP review → notifications received (manual: requires live LiqPay/Telegram/Claude credentials and a deployed or fully-configured local environment)
 
 ## 10. Production Deployment
 
