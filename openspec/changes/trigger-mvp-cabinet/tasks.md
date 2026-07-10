@@ -14,12 +14,12 @@
 
 ## 2. Psychologist Auth & Profile
 
-- [ ] 2.1 Define Prisma schema for `Psychologist` (email, password hash, name, slug, description, default session price)
-- [ ] 2.2 Implement registration flow (form, validation, unique email/slug check)
-- [ ] 2.3 Implement login flow via NextAuth
-- [ ] 2.4 Implement session/auth middleware restricting cabinet routes to authenticated owner
-- [ ] 2.5 Implement profile settings page (display name, slug, description, default price)
-- [ ] 2.6 Enforce slug uniqueness on profile update
+- [x] 2.1 Define Prisma schema for `Psychologist` (email, password hash, name, slug, description, default session price)
+- [x] 2.2 Implement registration flow (form, validation, unique email/slug check)
+- [x] 2.3 Implement login flow via NextAuth
+- [x] 2.4 Implement session/auth middleware restricting cabinet routes to authenticated owner
+- [x] 2.5 Implement profile settings page (display name, slug, description, default price)
+- [x] 2.6 Enforce slug uniqueness on profile update
 
 ## 3. Client Directory
 

@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
+const CABINET_PREFIXES = ["/dashboard", "/clients", "/schedule", "/sessions", "/settings"];
+
 export default auth((req) => {
-  const isCabinetRoute = req.nextUrl.pathname.startsWith("/dashboard");
+  const isCabinetRoute = CABINET_PREFIXES.some((prefix) =>
+    req.nextUrl.pathname.startsWith(prefix)
+  );
   if (isCabinetRoute && !req.auth) {
     const loginUrl = new URL("/login", req.nextUrl.origin);
     return NextResponse.redirect(loginUrl);
@@ -10,5 +14,11 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/clients/:path*",
+    "/schedule/:path*",
+    "/sessions/:path*",
+    "/settings/:path*",
+  ],
 };
