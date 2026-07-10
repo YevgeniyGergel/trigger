@@ -162,8 +162,9 @@ model Session {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  payments Payment[]
-  note     SessionNote?
+  payments      Payment[]
+  note          SessionNote?
+  notifications Notification[]
 
   @@index([psychologistId, startAt])
   @@index([clientId])
@@ -215,6 +216,8 @@ model Notification {
   psychologist   Psychologist? @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
   clientId       String?
   client         Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  sessionId      String?
+  session        Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   type      NotificationType
   channel   NotificationChannel
@@ -226,5 +229,6 @@ model Notification {
 
   @@index([psychologistId])
   @@index([clientId])
+  @@index([sessionId, type])
   @@map("notifications")
 }

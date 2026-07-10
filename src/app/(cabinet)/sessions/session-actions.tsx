@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   confirmSession,
@@ -220,6 +221,13 @@ export function SessionActions({
       ) : null}
 
       <PaymentSection sessionId={sessionId} priceCents={priceCents} paymentStatus={paymentStatus} />
+
+      <Link
+        href={`/sessions/${sessionId}`}
+        className="mt-2 block font-medium text-sage-700 underline decoration-sage-300 underline-offset-2 hover:decoration-sage-600"
+      >
+        Нотатка сесії
+      </Link>
     </div>
   );
 }

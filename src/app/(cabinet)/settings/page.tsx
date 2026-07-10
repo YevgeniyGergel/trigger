@@ -1,6 +1,7 @@
 import { requireCurrentPsychologist } from "@/lib/current-psychologist";
 import { ProfileForm } from "./profile-form";
 import { LiqpayForm } from "./liqpay-form";
+import { NotificationsForm } from "./notifications-form";
 import { PageHeader } from "@/components/ui/page-header";
 
 export default async function SettingsPage() {
@@ -29,6 +30,11 @@ export default async function SettingsPage() {
           hasCredentials={psychologist.liqpayPrivateKeyEnc != null}
           publicKey={psychologist.liqpayPublicKey ?? ""}
           mode={psychologist.liqpayMode}
+        />
+        <NotificationsForm
+          emailNotificationsEnabled={psychologist.emailNotificationsEnabled}
+          telegramNotificationsEnabled={psychologist.telegramNotificationsEnabled}
+          telegramLinked={psychologist.telegramChatId != null}
         />
       </div>
     </div>

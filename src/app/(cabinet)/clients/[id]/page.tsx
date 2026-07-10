@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireCurrentPsychologist } from "@/lib/current-psychologist";
@@ -87,9 +88,10 @@ export default async function ClientDetailPage({
                 const status = STATUS_BADGES[session.status];
                 const payment = PAYMENT_BADGES[session.paymentStatus];
                 return (
-                  <div
+                  <Link
                     key={session.id}
-                    className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5"
+                    href={`/sessions/${session.id}`}
+                    className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5 transition-colors hover:bg-sand-100/60"
                   >
                     <span className="text-sm text-ink">
                       {session.startAt.toLocaleString("uk-UA", {
@@ -105,7 +107,7 @@ export default async function ClientDetailPage({
                         {payment?.label ?? session.paymentStatus}
                       </Badge>
                     </span>
-                  </div>
+                  </Link>
                 );
               })}
             </Card>

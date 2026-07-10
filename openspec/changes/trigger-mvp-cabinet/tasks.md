@@ -66,28 +66,28 @@
 
 ## 7. Session Notes (Voice + Transcription + SOAP)
 
-- [ ] 7.1 Define Prisma schema for `SessionNote` (sessionId, audioUrl, transcriptText, editedText, soapText, soapStatus, status) with transcript/SOAP fields stored encrypted
-- [ ] 7.2 Set up KMS/secrets manager for the note-encryption key, separate from the primary database
-- [ ] 7.3 Implement browser audio recording (MediaRecorder API) with microphone permission handling
-- [ ] 7.4 Implement audio upload to object storage and note creation in "transcribing" status
-- [ ] 7.5 Integrate transcription service (e.g. Whisper API) as an async job, encrypting transcript text on save
-- [ ] 7.6 Update note status to "ready" with transcript text on success, "failed" on error with retry option
-- [ ] 7.7 Integrate Claude API call to structure the transcript into a SOAP-format draft after transcription succeeds
-- [ ] 7.8 Mark SOAP drafts as "unreviewed" until the psychologist edits/confirms them; handle SOAP structuring failures with retry option
-- [ ] 7.9 Implement transcript and SOAP editing UI, preserving original audio
-- [ ] 7.10 Enforce access control so only the owning psychologist can access audio/transcript/SOAP text
-- [ ] 7.11 Display note (audio player + transcript + SOAP draft) on the client's session view
+- [x] 7.1 Define Prisma schema for `SessionNote` (sessionId, audioUrl, transcriptText, editedText, soapText, soapStatus, status) with transcript/SOAP fields stored encrypted
+- [x] 7.2 Set up KMS/secrets manager for the note-encryption key, separate from the primary database
+- [x] 7.3 Implement browser audio recording (MediaRecorder API) with microphone permission handling
+- [x] 7.4 Implement audio upload to object storage and note creation in "transcribing" status
+- [x] 7.5 Integrate transcription service (e.g. Whisper API) as an async job, encrypting transcript text on save
+- [x] 7.6 Update note status to "ready" with transcript text on success, "failed" on error with retry option
+- [x] 7.7 Integrate Claude API call to structure the transcript into a SOAP-format draft after transcription succeeds
+- [x] 7.8 Mark SOAP drafts as "unreviewed" until the psychologist edits/confirms them; handle SOAP structuring failures with retry option
+- [x] 7.9 Implement transcript and SOAP editing UI, preserving original audio
+- [x] 7.10 Enforce access control so only the owning psychologist can access audio/transcript/SOAP text
+- [x] 7.11 Display note (audio player + transcript + SOAP draft) on the client's session view
 
 ## 8. Notifications (Email + Telegram)
 
-- [ ] 8.1 Set up transactional email provider (e.g. Resend/SendGrid) integration
-- [ ] 8.2 Set up Telegram bot (Telegram Bot API) for outbound notifications only
-- [ ] 8.3 Implement Telegram account linking via one-time deep-link token, associating chat ID with client/psychologist record
-- [ ] 8.4 Implement notification channel preferences per psychologist (email default, Telegram optional)
-- [ ] 8.5 Implement booking confirmation notifications (to psychologist and client) on new booking
-- [ ] 8.6 Implement session reminder job (configurable lead time before confirmed sessions), skipping cancelled sessions
-- [ ] 8.7 Implement payment status notifications (paid/failed) to psychologist and client
-- [ ] 8.8 Implement email fallback when Telegram delivery fails or is not linked
+- [x] 8.1 Set up transactional email provider (e.g. Resend/SendGrid) integration
+- [x] 8.2 Set up Telegram bot (Telegram Bot API) for outbound notifications only
+- [x] 8.3 Implement Telegram account linking via one-time deep-link token, associating chat ID with client/psychologist record
+- [x] 8.4 Implement notification channel preferences per psychologist (email default, Telegram optional)
+- [x] 8.5 Implement booking confirmation notifications (to psychologist and client) on new booking
+- [x] 8.6 Implement session reminder job (configurable lead time before confirmed sessions), skipping cancelled sessions
+- [x] 8.7 Implement payment status notifications (paid/failed) to psychologist and client
+- [x] 8.8 Implement email fallback when Telegram delivery fails or is not linked
 
 ## 9. Cross-Cutting Hardening
 

@@ -7,6 +7,8 @@ import { liqpayCredentialsSchema } from "@/lib/validation/liqpay";
 import { requireCurrentPsychologist } from "@/lib/current-psychologist";
 import { isUniqueConstraintError } from "@/lib/prisma-errors";
 import { encryptSecret } from "@/lib/crypto";
+import { buildTelegramLinkUrl } from "@/lib/telegram";
+import { randomUUID } from "node:crypto";
 
 export type ProfileFormState = {
   error?: string;
@@ -60,6 +62,56 @@ export async function updateProfile(
   revalidatePath("/settings");
 
   return { success: true };
+}
+
+export type NotificationPrefsState = {
+  error?: string;
+  success?: boolean;
+};
+
+export async function updateNotificationPreferences(
+  _prevState: NotificationPrefsState,
+  formData: FormData
+): Promise<NotificationPrefsState> {
+  const psychologist = await requireCurrentPsychologist();
+
+  await prisma.psychologist.update({
+    where: { id: psychologist.id },
+    data: {
+      emailNotificationsEnabled: formData.get("emailNotificationsEnabled") === "on",
+      telegramNotificationsEnabled: formData.get("telegramNotificationsEnabled") === "on",
+    },
+  });
+
+  revalidatePath("/settings");
+
+  return { success: true };
+}
+
+export type TelegramLinkState = {
+  error?: string;
+  linkUrl?: string;
+};
+
+export async function generateTelegramLink(): Promise<TelegramLinkState> {
+  const psychologist = await requireCurrentPsychologist();
+
+  const token = randomUUID();
+  await prisma.psychologist.update({
+    where: { id: psychologist.id },
+    data: { telegramLinkToken: token },
+  });
+
+  let linkUrl: string;
+  try {
+    linkUrl = buildTelegramLinkUrl(token);
+  } catch {
+    return { error: "Telegram-бот не налаштований" };
+  }
+
+  revalidatePath("/settings");
+
+  return { linkUrl };
 }
 
 export type LiqpayFormState = {

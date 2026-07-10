@@ -7,6 +7,12 @@ import { prisma } from "@/lib/prisma";
 import { bookingSchema } from "@/lib/validation/booking";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { checkSlotConflict } from "@/lib/slot-conflict";
+import {
+  notifyPsychologist,
+  notifyClient,
+  bookingConfirmationForPsychologist,
+  bookingConfirmationForClient,
+} from "@/lib/notifications";
 
 export type BookingFormState = {
   error?: string;
@@ -58,8 +64,9 @@ export async function createBooking(
     return { error: "Забагато спроб бронювання. Спробуйте пізніше." };
   }
 
+  let booking;
   try {
-    await prisma.$transaction(
+    booking = await prisma.$transaction(
       async (tx) => {
         const conflict = await checkSlotConflict(tx, {
           psychologistId: psychologist.id,
@@ -91,7 +98,7 @@ export async function createBooking(
           });
         }
 
-        await tx.session.create({
+        const session = await tx.session.create({
           data: {
             psychologistId: psychologist.id,
             clientId: client.id,
@@ -101,6 +108,8 @@ export async function createBooking(
             priceCents: psychologist.defaultSessionPriceCents ?? null,
           },
         });
+
+        return { client, session };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
     );
@@ -115,6 +124,23 @@ export async function createBooking(
       return { error: "Цей час щойно зайняли. Оберіть інший слот." };
     }
     throw error;
+  }
+
+  try {
+    await notifyPsychologist(
+      psychologist,
+      "BOOKING_CONFIRMATION",
+      bookingConfirmationForPsychologist(booking.client.name, startAt),
+      booking.session.id
+    );
+    await notifyClient(
+      booking.client,
+      "BOOKING_CONFIRMATION",
+      bookingConfirmationForClient(startAt),
+      booking.session.id
+    );
+  } catch (error) {
+    console.error("[booking] notification dispatch failed:", error);
   }
 
   revalidatePath(`/${slug}`);
