@@ -11,6 +11,15 @@ export default function CabinetLayout({ children }: { children: ReactNode }) {
           <Link href="/dashboard" className="text-sm text-gray-600 hover:text-black">
             Кабінет
           </Link>
+          <Link href="/clients" className="text-sm text-gray-600 hover:text-black">
+            Клієнти
+          </Link>
+          <Link href="/schedule" className="text-sm text-gray-600 hover:text-black">
+            Розклад
+          </Link>
+          <Link href="/sessions" className="text-sm text-gray-600 hover:text-black">
+            Сесії
+          </Link>
           <Link href="/settings" className="text-sm text-gray-600 hover:text-black">
             Налаштування
           </Link>

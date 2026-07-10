@@ -32,13 +32,13 @@
 
 ## 4. Availability & Scheduling
 
-- [ ] 4.1 Define Prisma schema for `WorkingHours` and blocked date ranges
-- [ ] 4.2 Implement working hours configuration UI (weekly recurring schedule)
-- [ ] 4.3 Implement slot generation logic based on working hours and session duration
-- [ ] 4.4 Implement date-range blocking UI with conflict warning for existing sessions
-- [ ] 4.5 Define Prisma schema for `Session` (psychologistId, clientId, startTime, endTime, status, price, paymentStatus)
-- [ ] 4.6 Implement calendar view (day/week) showing sessions with status
-- [ ] 4.7 Implement week/day navigation in calendar view
+- [x] 4.1 Define Prisma schema for `WorkingHours` and blocked date ranges
+- [x] 4.2 Implement working hours configuration UI (weekly recurring schedule)
+- [x] 4.3 Implement slot generation logic based on working hours and session duration
+- [x] 4.4 Implement date-range blocking UI with conflict warning for existing sessions
+- [x] 4.5 Define Prisma schema for `Session` (psychologistId, clientId, startTime, endTime, status, price, paymentStatus)
+- [x] 4.6 Implement calendar view (day/week) showing sessions with status
+- [x] 4.7 Implement week/day navigation in calendar view
 
 ## 5. Public Booking
 
@@ -103,7 +103,7 @@
 
 - [ ] 10.1 Provision managed Postgres, object storage, and KMS/secrets manager in production — all in EU region (Frankfurt/Amsterdam)
 - [ ] 10.2 Configure Vercel deployment region to EU (`fra1`) for production
-- [ ] 10.3 Configure production environment variables and LiqPay production credentials in Vercel
+- [ ] 10.3 Configure production environment variables and LiqPay production credentials in Vercel, including `TZ=Europe/Kyiv` (required — Vercel functions default to UTC, which would shift all schedule/slot times by 2-3 hours)
 - [ ] 10.4 Configure production deploy trigger on merge to `main` (via the CI/CD pipeline set up in section 1)
 - [ ] 10.5 Run Prisma migrations against the production database as part of the deploy step
 - [ ] 10.6 Verify LiqPay webhook and Telegram bot webhook reachable from production URL

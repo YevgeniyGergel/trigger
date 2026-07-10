@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "cross-env TZ=Europe/Kyiv next dev",
+    "build": "cross-env TZ=Europe/Kyiv next build",
+    "start": "cross-env TZ=Europe/Kyiv next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "cross-env TZ=Europe/Kyiv vitest run"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1084.0",
@@ -29,6 +29,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
