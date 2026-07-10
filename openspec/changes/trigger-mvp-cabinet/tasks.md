@@ -1,16 +1,16 @@
 ## 1. Project Setup & CI/CD
 
-- [ ] 1.1 Initialize git repository and push to a GitHub remote
-- [ ] 1.2 Scaffold Next.js (App Router, TypeScript) project
-- [ ] 1.3 Set up PostgreSQL database (EU region, e.g. Neon/Railway Frankfurt) and Prisma, configure connection
-- [ ] 1.4 Configure NextAuth with email/password provider for psychologist accounts
-- [ ] 1.5 Set up object storage (S3-compatible, e.g. Cloudflare R2 with EU data residency) for audio files
-- [ ] 1.6 Configure environment variables and secrets management (DB, NextAuth, LiqPay, storage, transcription API, Claude API)
-- [ ] 1.7 Set up base layout, routing structure (public routes vs. authenticated cabinet routes)
-- [ ] 1.8 Set up GitHub Actions CI workflow: lint, typecheck, and test on every pull request
-- [ ] 1.9 Connect repository to Vercel for automatic preview deployments per pull request
-- [ ] 1.10 Configure Prisma migration check in CI (fail build on unapplied/conflicting migrations)
-- [ ] 1.11 Set up branch protection on `main` requiring CI checks to pass before merge
+- [x] 1.1 Initialize git repository and push to a GitHub remote
+- [x] 1.2 Scaffold Next.js (App Router, TypeScript) project
+- [x] 1.3 Set up PostgreSQL database (EU region, e.g. Neon/Railway Frankfurt) and Prisma, configure connection
+- [x] 1.4 Configure NextAuth with email/password provider for psychologist accounts
+- [x] 1.5 Set up object storage (S3-compatible, e.g. Cloudflare R2 with EU data residency) for audio files
+- [x] 1.6 Configure environment variables and secrets management (DB, NextAuth, LiqPay, storage, transcription API, Claude API)
+- [x] 1.7 Set up base layout, routing structure (public routes vs. authenticated cabinet routes)
+- [x] 1.8 Set up GitHub Actions CI workflow: lint, typecheck, and test on every pull request
+- [ ] 1.9 Connect repository to Vercel for automatic preview deployments per pull request (manual: requires Vercel account)
+- [x] 1.10 Configure Prisma migration check in CI (fail build on unapplied/conflicting migrations)
+- [ ] 1.11 Set up branch protection on `main` requiring CI checks to pass before merge (manual: requires GitHub repo settings)
 
 ## 2. Psychologist Auth & Profile
 

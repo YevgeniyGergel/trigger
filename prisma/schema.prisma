@@ -1,0 +1,230 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SessionStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  NONE
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMode {
+  TEST
+  PRODUCTION
+}
+
+enum NoteStatus {
+  RECORDING
+  TRANSCRIBING
+  READY
+  FAILED
+}
+
+enum SoapStatus {
+  NONE
+  DRAFT
+  REVIEWED
+  FAILED
+}
+
+enum NotificationChannel {
+  EMAIL
+  TELEGRAM
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMATION
+  SESSION_REMINDER
+  PAYMENT_STATUS
+  CANCELLATION
+}
+
+model Psychologist {
+  id                   String   @id @default(cuid())
+  email                String   @unique
+  passwordHash         String
+  name                 String
+  slug                 String   @unique
+  description          String?
+  defaultSessionPriceCents Int?
+  sessionDurationMinutes  Int    @default(50)
+  breakDurationMinutes    Int    @default(10)
+  reminderLeadHours       Int    @default(24)
+
+  // LiqPay merchant credentials (per-psychologist), privateKey encrypted at application level
+  liqpayPublicKey      String?
+  liqpayPrivateKeyEnc  String?
+  liqpayMode           PaymentMode @default(TEST)
+
+  // Notification preferences
+  emailNotificationsEnabled    Boolean @default(true)
+  telegramNotificationsEnabled Boolean @default(false)
+  telegramChatId                String?
+  telegramLinkToken              String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clients        Client[]
+  workingHours   WorkingHour[]
+  blockedRanges  BlockedRange[]
+  sessions       Session[]
+  notifications  Notification[]
+
+  @@map("psychologists")
+}
+
+model Client {
+  id           String   @id @default(cuid())
+  psychologistId String
+  psychologist Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+
+  name         String
+  phone        String?
+  email        String?
+  telegramChatId String?
+  telegramLinkToken String? @unique
+  active       Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions      Session[]
+  notifications Notification[]
+
+  @@index([psychologistId])
+  @@map("clients")
+}
+
+model WorkingHour {
+  id             String @id @default(cuid())
+  psychologistId String
+  psychologist   Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+
+  // 0 = Sunday .. 6 = Saturday
+  weekday   Int
+  startTime String // "HH:mm" local time
+  endTime   String // "HH:mm" local time
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([psychologistId])
+  @@map("working_hours")
+}
+
+model BlockedRange {
+  id             String @id @default(cuid())
+  psychologistId String
+  psychologist   Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+
+  startAt DateTime
+  endAt   DateTime
+  reason  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([psychologistId])
+  @@map("blocked_ranges")
+}
+
+model Session {
+  id             String @id @default(cuid())
+  psychologistId String
+  psychologist   Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  startAt DateTime
+  endAt   DateTime
+  status  SessionStatus @default(PENDING)
+
+  priceCents    Int?
+  paymentStatus PaymentStatus @default(NONE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments Payment[]
+  note     SessionNote?
+
+  @@index([psychologistId, startAt])
+  @@index([clientId])
+  @@map("sessions")
+}
+
+model Payment {
+  id             String @id @default(cuid())
+  sessionId      String
+  session        Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  provider              String @default("liqpay")
+  amountCents           Int
+  status                PaymentStatus @default(PENDING)
+  providerTransactionId String?
+  rawWebhookPayload      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+  @@map("payments")
+}
+
+model SessionNote {
+  id        String @id @default(cuid())
+  sessionId String @unique
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  audioUrl String?
+
+  // Encrypted at the application level (KMS-backed key), see design.md
+  transcriptTextEnc String?
+  editedTextEnc      String?
+  soapTextEnc        String?
+
+  status     NoteStatus @default(RECORDING)
+  soapStatus SoapStatus @default(NONE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("session_notes")
+}
+
+model Notification {
+  id             String @id @default(cuid())
+  psychologistId String?
+  psychologist   Psychologist? @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+  clientId       String?
+  client         Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  type      NotificationType
+  channel   NotificationChannel
+  sentAt    DateTime?
+  failedAt  DateTime?
+  payload   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([psychologistId])
+  @@index([clientId])
+  @@map("notifications")
+}
