@@ -23,12 +23,12 @@
 
 ## 3. Client Directory
 
-- [ ] 3.1 Define Prisma schema for `Client` (psychologistId, name, phone, email, active flag)
-- [ ] 3.2 Implement client list page scoped to authenticated psychologist
-- [ ] 3.3 Implement manual client creation form
-- [ ] 3.4 Implement client profile page showing contact info, session history, notes, payment statuses
-- [ ] 3.5 Implement client edit and deactivate actions
-- [ ] 3.6 Enforce cross-account data isolation on all client queries
+- [x] 3.1 Define Prisma schema for `Client` (psychologistId, name, phone, email, active flag)
+- [x] 3.2 Implement client list page scoped to authenticated psychologist
+- [x] 3.3 Implement manual client creation form
+- [x] 3.4 Implement client profile page showing contact info, session history, notes, payment statuses
+- [x] 3.5 Implement client edit and deactivate actions
+- [x] 3.6 Enforce cross-account data isolation on all client queries
 
 ## 4. Availability & Scheduling
 

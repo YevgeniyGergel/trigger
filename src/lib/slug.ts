@@ -15,10 +15,12 @@ function transliterate(input: string): string {
 }
 
 export function slugify(input: string): string {
-  return transliterate(input)
-    .trim()
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+  return (
+    transliterate(input) // Cyrillic -> Latin (e.g. "Олена" -> "olena")
+      .trim()
+      .normalize("NFKD") // decompose accented Latin letters (e.g. "José" -> "José")
+      .replace(/[̀-ͯ]/g, "") // drop the combining diacritics left by NFKD
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+  );
 }

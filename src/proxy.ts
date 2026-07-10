@@ -14,6 +14,9 @@ export default auth((req) => {
 });
 
 export const config = {
+  // Next.js requires this to be a static array literal (no computed values),
+  // so it can't be derived from CABINET_PREFIXES above — keep both in sync
+  // by hand when adding a new cabinet route.
   matcher: [
     "/dashboard/:path*",
     "/clients/:path*",

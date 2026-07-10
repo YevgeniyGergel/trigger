@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { profileUpdateSchema } from "@/lib/validation/psychologist";
 import { requireCurrentPsychologist } from "@/lib/current-psychologist";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
 
 export type ProfileFormState = {
   error?: string;
@@ -17,14 +18,18 @@ export async function updateProfile(
   const psychologist = await requireCurrentPsychologist();
 
   const priceRaw = formData.get("defaultSessionPrice");
-  const priceUah = typeof priceRaw === "string" && priceRaw.trim() !== "" ? Number(priceRaw) : null;
+  const priceRawTrimmed = typeof priceRaw === "string" ? priceRaw.trim() : "";
+  const priceUah = priceRawTrimmed !== "" ? Number(priceRawTrimmed) : null;
+
+  if (priceUah !== null && Number.isNaN(priceUah)) {
+    return { error: "Вартість сесії має бути числом" };
+  }
 
   const parsed = profileUpdateSchema.safeParse({
     name: formData.get("name"),
     slug: formData.get("slug"),
     description: formData.get("description"),
-    defaultSessionPriceCents:
-      priceUah !== null && !Number.isNaN(priceUah) ? Math.round(priceUah * 100) : null,
+    defaultSessionPriceCents: priceUah !== null ? Math.round(priceUah * 100) : null,
   });
 
   if (!parsed.success) {
@@ -33,22 +38,22 @@ export async function updateProfile(
 
   const { name, slug, description, defaultSessionPriceCents } = parsed.data;
 
-  if (slug !== psychologist.slug) {
-    const slugTaken = await prisma.psychologist.findUnique({ where: { slug } });
-    if (slugTaken) {
+  try {
+    await prisma.psychologist.update({
+      where: { id: psychologist.id },
+      data: {
+        name,
+        slug,
+        description: description || null,
+        defaultSessionPriceCents,
+      },
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error, "slug")) {
       return { error: "Цей слаг вже зайнятий, оберіть інший" };
     }
+    throw error;
   }
-
-  await prisma.psychologist.update({
-    where: { id: psychologist.id },
-    data: {
-      name,
-      slug,
-      description: description || null,
-      defaultSessionPriceCents,
-    },
-  });
 
   revalidatePath("/settings");
 
