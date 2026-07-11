@@ -4,6 +4,12 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Vercel serves the same deployment behind multiple hostnames (production
+  // domain, *.vercel.app, preview URLs) — trustHost tells Auth.js to derive
+  // the base URL from the actual incoming request instead of a fixed
+  // AUTH_URL/NEXTAUTH_URL env var, which would otherwise mismatch as soon as
+  // the domain differs from whatever that env var happened to be set to.
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
