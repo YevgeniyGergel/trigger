@@ -62,19 +62,35 @@ enum NotificationType {
   RESCHEDULED
 }
 
+enum IntegrationProvider {
+  GOOGLE
+  ZOOM
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  EXPIRED
+}
+
+enum MeetingProviderType {
+  NONE
+  GOOGLE_MEET
+  ZOOM
+}
+
 model Psychologist {
-  id                   String   @id @default(cuid())
-  email                String   @unique
-  passwordHash         String
-  name                 String
-  slug                 String   @unique
-  description          String?
-  reminderLeadHours       Int    @default(24)
+  id                String  @id @default(cuid())
+  email             String  @unique
+  passwordHash      String
+  name              String
+  slug              String  @unique
+  description       String?
+  reminderLeadHours Int     @default(24)
 
   // LiqPay merchant credentials (per-psychologist), privateKey encrypted at application level
-  liqpayPublicKey      String?
-  liqpayPrivateKeyEnc  String?
-  liqpayMode           PaymentMode @default(TEST)
+  liqpayPublicKey     String?
+  liqpayPrivateKeyEnc String?
+  liqpayMode          PaymentMode @default(TEST)
 
   // ISO-639-1 code pinned for Whisper transcription (see design.md) — auto
   // language detection frequently misreads short/quiet Ukrainian clips as
@@ -84,24 +100,50 @@ model Psychologist {
   // Notification preferences
   emailNotificationsEnabled    Boolean @default(true)
   telegramNotificationsEnabled Boolean @default(false)
-  telegramChatId                String?
-  telegramLinkToken              String? @unique
+  telegramChatId               String?
+  telegramLinkToken            String? @unique
+
+  defaultMeetingProvider MeetingProviderType @default(NONE)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  clients        Client[]
-  workingHours   WorkingHour[]
-  blockedRanges  BlockedRange[]
-  sessions       Session[]
-  notifications  Notification[]
-  serviceTypes   ServiceType[]
+  clients                Client[]
+  workingHours           WorkingHour[]
+  blockedRanges          BlockedRange[]
+  sessions               Session[]
+  notifications          Notification[]
+  serviceTypes           ServiceType[]
+  integrationConnections IntegrationConnection[]
 
   @@map("psychologists")
 }
 
+model IntegrationConnection {
+  id             String       @id @default(cuid())
+  psychologistId String
+  psychologist   Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+
+  provider IntegrationProvider
+  status   IntegrationStatus   @default(ACTIVE)
+
+  // OAuth tokens, encrypted at the application level (src/lib/crypto.ts) —
+  // same pattern as the LiqPay private key.
+  accessTokenEnc  String
+  refreshTokenEnc String
+  expiresAt       DateTime
+
+  externalAccountEmail String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([psychologistId, provider])
+  @@map("integration_connections")
+}
+
 model ServiceType {
-  id             String @id @default(cuid())
+  id             String       @id @default(cuid())
   psychologistId String
   psychologist   Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
 
@@ -109,11 +151,11 @@ model ServiceType {
   // Full calendar footprint (session time + break); the grid step used by
   // generateAvailableSlots(). Client-facing "session length" = slotMinutes - breakMinutes.
   slotMinutes  Int
-  breakMinutes Int @default(0)
+  breakMinutes Int     @default(0)
   priceCents   Int?
   isDefault    Boolean @default(false)
   active       Boolean @default(true)
-  sortOrder    Int @default(0)
+  sortOrder    Int     @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -125,16 +167,16 @@ model ServiceType {
 }
 
 model Client {
-  id           String   @id @default(cuid())
+  id             String       @id @default(cuid())
   psychologistId String
-  psychologist Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+  psychologist   Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
 
-  name         String
-  phone        String?
-  email        String?
-  telegramChatId String?
+  name              String
+  phone             String?
+  email             String?
+  telegramChatId    String?
   telegramLinkToken String? @unique
-  active       Boolean  @default(true)
+  active            Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -147,7 +189,7 @@ model Client {
 }
 
 model WorkingHour {
-  id             String @id @default(cuid())
+  id             String       @id @default(cuid())
   psychologistId String
   psychologist   Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
 
@@ -164,7 +206,7 @@ model WorkingHour {
 }
 
 model BlockedRange {
-  id             String @id @default(cuid())
+  id             String       @id @default(cuid())
   psychologistId String
   psychologist   Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
 
@@ -179,11 +221,11 @@ model BlockedRange {
 }
 
 model Session {
-  id             String @id @default(cuid())
+  id             String       @id @default(cuid())
   psychologistId String
   psychologist   Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
   clientId       String
-  client         Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
   serviceTypeId  String?
   serviceType    ServiceType? @relation(fields: [serviceTypeId], references: [id], onDelete: SetNull)
 
@@ -193,6 +235,18 @@ model Session {
 
   priceCents    Int?
   paymentStatus PaymentStatus @default(NONE)
+
+  // Google Calendar sync (google-calendar-sync capability)
+  calendarEventId   String?
+  // Meeting links (meeting-links capability) — set once at confirmation
+  // time and owned by the session from then on, independent of later
+  // changes to the psychologist's defaultMeetingProvider.
+  meetingProvider   MeetingProviderType @default(NONE)
+  meetingUrl        String?
+  meetingExternalId String?
+  // Set when a best-effort calendar/meeting sync call fails; cleared by the
+  // cron reconciliation pass once retried successfully.
+  syncPending       Boolean             @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -207,15 +261,15 @@ model Session {
 }
 
 model Payment {
-  id             String @id @default(cuid())
-  sessionId      String
-  session        Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  provider              String @default("liqpay")
+  provider              String        @default("liqpay")
   amountCents           Int
   status                PaymentStatus @default(PENDING)
   providerTransactionId String?
-  rawWebhookPayload      String?
+  rawWebhookPayload     String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -225,16 +279,16 @@ model Payment {
 }
 
 model SessionNote {
-  id        String @id @default(cuid())
-  sessionId String @unique
+  id        String  @id @default(cuid())
+  sessionId String  @unique
   session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   audioUrl String?
 
   // Encrypted at the application level (KMS-backed key), see design.md
   transcriptTextEnc String?
-  editedTextEnc      String?
-  soapTextEnc        String?
+  editedTextEnc     String?
+  soapTextEnc       String?
 
   status     NoteStatus @default(RECORDING)
   soapStatus SoapStatus @default(NONE)
@@ -246,19 +300,19 @@ model SessionNote {
 }
 
 model Notification {
-  id             String @id @default(cuid())
+  id             String        @id @default(cuid())
   psychologistId String?
   psychologist   Psychologist? @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
   clientId       String?
-  client         Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client         Client?       @relation(fields: [clientId], references: [id], onDelete: Cascade)
   sessionId      String?
-  session        Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session        Session?      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  type      NotificationType
-  channel   NotificationChannel
-  sentAt    DateTime?
-  failedAt  DateTime?
-  payload   String?
+  type     NotificationType
+  channel  NotificationChannel
+  sentAt   DateTime?
+  failedAt DateTime?
+  payload  String?
 
   createdAt DateTime @default(now())
 

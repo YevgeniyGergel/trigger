@@ -30,7 +30,7 @@ The system SHALL notify both the psychologist and the client through their confi
 - **THEN** the system sends a confirmation notification to the client with session date, time, and status
 
 ### Requirement: Session Reminder Notification
-The system SHALL send an automated reminder to the client a configurable number of hours before a confirmed session.
+The system SHALL send an automated reminder to the client before a confirmed session. The reminder lead time (hours before the session) SHALL be configurable by the psychologist in their notification settings, with a sensible default (24 hours).
 
 #### Scenario: Reminder sent before session
 - **WHEN** the configured reminder lead time before a confirmed session is reached
@@ -51,8 +51,19 @@ The system SHALL notify the psychologist and the client when a session's payment
 - **WHEN** a session's payment status changes to "failed"
 - **THEN** the system notifies the client with a retry link and notifies the psychologist of the failed attempt
 
+#### Scenario: Payment refunded
+- **WHEN** a session's payment status changes to "refunded"
+- **THEN** the system notifies the client that the payment was returned
+
+### Requirement: Client Notification Times Use the Client's Timezone
+The system SHALL render dates and times in client-facing notifications using the client's timezone captured at booking, with an explicit timezone label when it differs from Europe/Kyiv. When no client timezone is stored, times SHALL be rendered in Europe/Kyiv with the timezone labeled.
+
+#### Scenario: Reminder for a client abroad
+- **WHEN** a reminder is sent to a client whose stored timezone is Europe/Berlin for a session at 14:00 Kyiv time
+- **THEN** the message states the session time as 13:00 with the timezone labeled
+
 ### Requirement: Email Fallback Guarantee
-The system SHALL always deliver notifications via email even if Telegram is configured, unless the psychologist explicitly disables email for that notification type.
+The system SHALL always deliver client notifications via email (the address is required at booking) even if Telegram is linked; Telegram is an additional channel, never a replacement.
 
 #### Scenario: Telegram delivery fails
 - **WHEN** a Telegram notification fails to deliver (e.g., bot blocked by user)

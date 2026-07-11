@@ -151,6 +151,30 @@ export async function setDefaultServiceType(serviceTypeId: string): Promise<Simp
   return {};
 }
 
+export async function deleteServiceType(serviceTypeId: string): Promise<SimpleActionResult> {
+  const psychologist = await requireCurrentPsychologist();
+
+  const service = await prisma.serviceType.findFirst({
+    where: { id: serviceTypeId, psychologistId: psychologist.id },
+    include: { _count: { select: { sessions: true } } },
+  });
+  if (!service) {
+    return { error: "Послугу не знайдено" };
+  }
+  if (service.isDefault) {
+    return { error: "Типову послугу не можна видалити — спершу оберіть іншу типову" };
+  }
+  if (service._count.sessions > 0) {
+    return { error: "Послугу з сесіями не можна видалити — деактивуйте її" };
+  }
+
+  await prisma.serviceType.delete({ where: { id: serviceTypeId } });
+
+  revalidatePath("/schedule");
+
+  return {};
+}
+
 export async function moveServiceType(
   serviceTypeId: string,
   direction: "up" | "down"

@@ -4,6 +4,7 @@ import { Logo } from "@/components/ui/logo";
 import { RippleBackdrop } from "@/components/ui/ripple";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/page-header";
 import { formatKyiv } from "@/lib/timezone";
 
@@ -57,7 +58,14 @@ export default async function SessionStatusPage({
             </h1>
             <p className="mt-1.5 text-sm text-ink-muted">
               {formatKyiv(session.startAt, { dateStyle: "medium", timeStyle: "short" })}
-              {session.serviceType ? ` · ${session.serviceType.name}` : ""}
+              {/* Client-facing length is the "clean" session time (slot minus
+                  break), not the full startAt–endAt slot interval. Legacy
+                  sessions without a service show no length. */}
+              {session.serviceType
+                ? ` · ${session.serviceType.name}, ${
+                    session.serviceType.slotMinutes - session.serviceType.breakMinutes
+                  } хв`
+                : ""}
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -66,6 +74,17 @@ export default async function SessionStatusPage({
                 {PAYMENT_STATUS_LABELS[session.paymentStatus] ?? session.paymentStatus}
               </Badge>
             </div>
+
+            {session.meetingUrl ? (
+              <ButtonLink
+                href={session.meetingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 w-full"
+              >
+                Приєднатися до онлайн-зустрічі
+              </ButtonLink>
+            ) : null}
           </CardBody>
         </Card>
       </div>

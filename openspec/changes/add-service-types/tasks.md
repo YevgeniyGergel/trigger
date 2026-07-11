@@ -34,8 +34,8 @@
 
 ## 7. Spec-review follow-ups
 
-- [ ] 7.1 Create the initial default service ("Стандартна консультація", slot 60, break 10, no price) in the registration flow (`src/app/register/actions.ts`), inside the same transaction as the psychologist row (+ test) — the "exactly one default" invariant currently breaks for new sign-ups
-- [ ] 7.2 Allow deleting a service that no sessions reference and that is not the default (deactivate remains the path otherwise); verify both blocks in `service-actions.ts` (+ tests)
-- [ ] 7.3 Keep `priceCents` untouched when editing an already-paid session in the cabinet (no re-derivation from the new service); extend `sessions/__tests__/actions.test.ts`
-- [ ] 7.4 Verify client-facing surfaces (booking confirmation, reminders, session status page) show start time + client-facing length (slot − break), not the full `startAt`–`endAt` interval; legacy sessions without a service may show the full interval
-- [ ] 7.5 Re-run test suite + typecheck after the follow-ups
+- [x] 7.1 Create the initial default service ("Стандартна консультація", slot 60, break 10, no price) in the registration flow (`src/app/register/actions.ts`), inside the same transaction as the psychologist row (+ test) — the "exactly one default" invariant currently breaks for new sign-ups
+- [x] 7.2 Allow deleting a service that no sessions reference and that is not the default (deactivate remains the path otherwise); verify both blocks in `service-actions.ts` (+ tests)
+- [x] 7.3 Keep `priceCents` untouched when editing an already-paid session in the cabinet (no re-derivation from the new service); extend `sessions/__tests__/actions.test.ts`
+- [x] 7.4 Verify client-facing surfaces (booking confirmation, reminders, session status page) show start time + client-facing length (slot − break), not the full `startAt`–`endAt` interval; legacy sessions without a service may show the full interval
+- [x] 7.5 Re-run test suite + typecheck after the follow-ups

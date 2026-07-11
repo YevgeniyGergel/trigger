@@ -23,6 +23,7 @@ export default async function SchedulePage() {
     prisma.serviceType.findMany({
       where: { psychologistId: psychologist.id },
       orderBy: { sortOrder: "asc" },
+      include: { _count: { select: { sessions: true } } },
     }),
   ]);
 

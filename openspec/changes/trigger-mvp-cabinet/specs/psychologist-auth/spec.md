@@ -43,3 +43,7 @@ The system SHALL allow a psychologist to view and edit their public booking prof
 #### Scenario: Slug uniqueness enforced
 - **WHEN** a psychologist attempts to change their slug to one already in use
 - **THEN** the system rejects the change and keeps the previous slug
+
+#### Scenario: Slug change warns about published links
+- **WHEN** a psychologist changes their slug
+- **THEN** the system warns, before saving, that previously shared booking links (business cards, social bios) will stop working

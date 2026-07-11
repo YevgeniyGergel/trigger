@@ -139,23 +139,52 @@ function sessionStatusUrl(sessionId: string): string {
   return `${process.env.APP_BASE_URL ?? ""}/session/${sessionId}`;
 }
 
-export function bookingConfirmationForClient(startAt: Date, sessionId: string): Message {
+// Client-facing copy states the start time plus the "clean" session length
+// (slot minus break) — never the full startAt–endAt slot interval, which
+// includes the psychologist's break. `null`/`undefined` (legacy sessions
+// without a service) omits the length entirely.
+function lengthSuffix(sessionMinutes: number | null | undefined): string {
+  return sessionMinutes != null ? `, тривалість ${sessionMinutes} хв` : "";
+}
+
+// Meeting link is omitted entirely when absent (meeting-links spec: "No
+// link for sessions without a meeting") rather than shown as a placeholder.
+function meetingHtml(meetingUrl: string | null | undefined): string {
+  return meetingUrl ? ` <a href="${meetingUrl}">Приєднатися до онлайн-зустрічі</a>.` : "";
+}
+function meetingText(meetingUrl: string | null | undefined): string {
+  return meetingUrl ? ` Онлайн-зустріч: ${meetingUrl}` : "";
+}
+
+export function bookingConfirmationForClient(
+  startAt: Date,
+  sessionId: string,
+  sessionMinutes?: number | null,
+  meetingUrl?: string | null
+): Message {
   const when = formatKyiv(startAt, { dateStyle: "medium", timeStyle: "short" });
+  const length = lengthSuffix(sessionMinutes);
   const statusUrl = sessionStatusUrl(sessionId);
   return {
     subject: "Підтвердження запису",
-    emailHtml: `<p>Вашу сесію заплановано на ${when}. Психолог підтвердить запис найближчим часом. <a href="${statusUrl}">Перевірити статус запису</a>.</p>`,
-    telegramText: `Вашу сесію заплановано на ${when}. Статус запису: ${statusUrl}`,
+    emailHtml: `<p>Вашу сесію заплановано на ${when}${length}. Психолог підтвердить запис найближчим часом. <a href="${statusUrl}">Перевірити статус запису</a>.${meetingHtml(meetingUrl)}</p>`,
+    telegramText: `Вашу сесію заплановано на ${when}${length}. Статус запису: ${statusUrl}${meetingText(meetingUrl)}`,
   };
 }
 
-export function sessionReminderForClient(startAt: Date, sessionId: string): Message {
+export function sessionReminderForClient(
+  startAt: Date,
+  sessionId: string,
+  sessionMinutes?: number | null,
+  meetingUrl?: string | null
+): Message {
   const when = formatKyiv(startAt, { dateStyle: "medium", timeStyle: "short" });
+  const length = lengthSuffix(sessionMinutes);
   const statusUrl = sessionStatusUrl(sessionId);
   return {
     subject: "Нагадування про сесію",
-    emailHtml: `<p>Нагадуємо про вашу сесію ${when}. <a href="${statusUrl}">Переглянути статус запису</a>.</p>`,
-    telegramText: `Нагадуємо про вашу сесію ${when}. Статус запису: ${statusUrl}`,
+    emailHtml: `<p>Нагадуємо про вашу сесію ${when}${length}. <a href="${statusUrl}">Переглянути статус запису</a>.${meetingHtml(meetingUrl)}</p>`,
+    telegramText: `Нагадуємо про вашу сесію ${when}${length}. Статус запису: ${statusUrl}${meetingText(meetingUrl)}`,
   };
 }
 

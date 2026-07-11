@@ -13,6 +13,14 @@ import {
   sessionCancelledForClient,
   sessionRescheduledForClient,
 } from "@/lib/notifications";
+import {
+  syncSessionCreated,
+  syncSessionConfirmed,
+  syncSessionCancelled,
+  syncSessionRescheduled,
+  retrySessionSync,
+} from "@/lib/integrations/session-sync";
+import { isSlotBusy } from "@/lib/integrations/busy-cache";
 
 export type SessionActionResult = {
   error?: string;
@@ -76,6 +84,10 @@ export async function createManualSession(
 
   const endAt = new Date(startAt.getTime() + service.slotMinutes * 60_000);
 
+  if (await isSlotBusy(psychologist.id, startAt, endAt)) {
+    return { error: SLOT_CONFLICT_MESSAGES_MANUAL.session_overlap };
+  }
+
   let sessionId: string;
   try {
     sessionId = await prisma.$transaction(
@@ -114,6 +126,13 @@ export async function createManualSession(
     throw error;
   }
 
+  try {
+    await syncSessionCreated(sessionId);
+    await syncSessionConfirmed(sessionId);
+  } catch (error) {
+    console.error("[sessions] calendar/meeting sync failed:", error);
+  }
+
   revalidatePath("/sessions");
   revalidatePath(`/clients/${client.id}`);
   redirect(`/sessions/${sessionId}`);
@@ -138,6 +157,13 @@ export async function confirmSession(sessionId: string): Promise<SessionActionRe
   if (result.count === 0) {
     return { error: "Сесію вже змінено. Оновіть сторінку." };
   }
+
+  try {
+    await syncSessionConfirmed(sessionId);
+  } catch (error) {
+    console.error("[sessions] meeting sync failed:", error);
+  }
+
   return {};
 }
 
@@ -176,6 +202,12 @@ export async function cancelSession(sessionId: string): Promise<SessionActionRes
       );
     } catch (error) {
       console.error("[sessions] cancellation notification failed:", error);
+    }
+
+    try {
+      await syncSessionCancelled(cancelled.id);
+    } catch (error) {
+      console.error("[sessions] calendar/meeting cancellation sync failed:", error);
     }
   }
 
@@ -224,6 +256,21 @@ export async function rescheduleSession(
     hour: Number(hour),
     minute: Number(minute),
   });
+
+  // Re-check Google Calendar busy intervals uncached, outside the
+  // transaction below (an external API call has no business holding a
+  // Serializable transaction's locks).
+  const existing = await prisma.session.findFirst({
+    where: { id: sessionId, psychologistId: psychologist.id, status: { in: ["PENDING", "CONFIRMED"] } },
+    select: { startAt: true, endAt: true },
+  });
+  if (existing) {
+    const durationMs = existing.endAt.getTime() - existing.startAt.getTime();
+    const candidateEndAt = new Date(startAt.getTime() + durationMs);
+    if (await isSlotBusy(psychologist.id, startAt, candidateEndAt)) {
+      return { error: SLOT_CONFLICT_MESSAGES.session_overlap };
+    }
+  }
 
   let rescheduledClient;
   try {
@@ -296,7 +343,35 @@ export async function rescheduleSession(
     console.error("[sessions] reschedule notification failed:", error);
   }
 
+  try {
+    await syncSessionRescheduled(sessionId);
+  } catch (error) {
+    console.error("[sessions] reschedule calendar/meeting sync failed:", error);
+  }
+
   revalidatePath("/sessions");
+  return {};
+}
+
+export async function retrySessionSyncAction(sessionId: string): Promise<SessionActionResult> {
+  const psychologist = await requireCurrentPsychologist();
+
+  const session = await prisma.session.findFirst({
+    where: { id: sessionId, psychologistId: psychologist.id },
+    select: { id: true },
+  });
+  if (!session) {
+    return { error: "Сесію не знайдено" };
+  }
+
+  try {
+    await retrySessionSync(sessionId);
+  } catch (error) {
+    console.error("[sessions] manual sync retry failed:", error);
+    return { error: "Не вдалося синхронізувати. Спробуйте пізніше." };
+  }
+
+  revalidatePath(`/sessions/${sessionId}`);
   return {};
 }
 
@@ -311,15 +386,20 @@ export async function updateSessionPrice(
   }
   const priceCents = priceUah != null ? Math.round(priceUah * 100) : null;
 
+  // A paid session's priceCents is the amount actually charged — it must
+  // stay untouched no matter how the session is edited afterwards.
   const result = await prisma.session.updateMany({
-    where: { id: sessionId, psychologistId: psychologist.id },
+    where: { id: sessionId, psychologistId: psychologist.id, paymentStatus: { not: "PAID" } },
     data: { priceCents },
   });
 
   revalidatePath("/sessions");
 
   if (result.count === 0) {
-    return { error: "Сесію не знайдено" };
+    const paid = await prisma.session.findFirst({
+      where: { id: sessionId, psychologistId: psychologist.id, paymentStatus: "PAID" },
+    });
+    return { error: paid ? "Сесію вже оплачено — її вартість змінити не можна" : "Сесію не знайдено" };
   }
   return {};
 }

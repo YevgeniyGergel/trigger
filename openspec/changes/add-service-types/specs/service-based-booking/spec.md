@@ -33,7 +33,7 @@ A booked session SHALL store `startAt` and `endAt` spanning the full slot (sessi
 - **THEN** the booking is rejected as a slot conflict
 
 ### Requirement: Cabinet session creation uses service types
-When a psychologist creates or edits a session in the cabinet, the system SHALL let them pick an active service type (default preselected) and SHALL derive the session's end time and price from it the same way as public booking. For a session that is already paid, editing MUST NOT re-derive the price: the snapshotted `priceCents` stays as charged.
+When a psychologist creates or edits a session in the cabinet, the system SHALL let them pick an active service type (default preselected) and SHALL derive the session's end time and price from it the same way as public booking. The psychologist MAY override the derived price of an individual session while its payment is not completed (the existing payment-processing "Override price for a session" requirement remains in force; the service price is the default, the override wins). For a session that is already paid, editing MUST NOT re-derive or override the price: the snapshotted `priceCents` stays as charged.
 
 #### Scenario: Manual session with a service
 - **WHEN** the psychologist creates a session at 15:00 with a 30-minute intro service
@@ -42,6 +42,10 @@ When a psychologist creates or edits a session in the cabinet, the system SHALL 
 #### Scenario: Editing a paid session keeps its price
 - **WHEN** the psychologist changes the service of a session the client has already paid for
 - **THEN** the session's time span follows the new service but `priceCents` remains the amount that was paid
+
+#### Scenario: Price override on an unpaid session
+- **WHEN** the psychologist sets a custom price on an unpaid session created from a 1500 грн service
+- **THEN** the session's `priceCents` reflects the custom price and the payment request uses it; the service's catalog price is unchanged
 
 ### Requirement: Client-facing surfaces show the session length, not the slot
 Wherever a client sees a session's duration — booking confirmation and reminder notifications, the client session status page — the system SHALL present the start time together with the client-facing session length (slot minus break) taken from the referenced service, not the full slot interval. Sessions without a service reference (legacy) MAY show the full interval.

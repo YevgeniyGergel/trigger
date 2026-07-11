@@ -9,7 +9,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NoteRecorder } from "./note-recorder";
 import { NoteEditor } from "./note-editor";
+import { RetrySyncButton } from "./retry-sync-button";
 import { formatKyiv } from "@/lib/timezone";
+
+const MEETING_PROVIDER_LABELS: Record<string, string> = {
+  GOOGLE_MEET: "Google Meet",
+  ZOOM: "Zoom",
+};
 
 const STATUS_BADGES: Record<
   string,
@@ -73,7 +79,23 @@ export default async function SessionDetailPage({
               <span className="text-ink-muted">Статус</span>
               <Badge tone={status?.tone ?? "neutral"}>{status?.label ?? session.status}</Badge>
             </div>
+            {session.meetingUrl ? (
+              <div className="flex items-center justify-between">
+                <span className="text-ink-muted">
+                  Онлайн-зустріч{MEETING_PROVIDER_LABELS[session.meetingProvider] ? ` · ${MEETING_PROVIDER_LABELS[session.meetingProvider]}` : ""}
+                </span>
+                <a
+                  href={session.meetingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-sage-700 underline decoration-sage-300 underline-offset-2 hover:decoration-sage-600"
+                >
+                  Приєднатися
+                </a>
+              </div>
+            ) : null}
           </div>
+          {session.syncPending ? <RetrySyncButton sessionId={session.id} /> : null}
         </Card>
 
         <section>

@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Voice Note Recording
-The system SHALL allow a psychologist to record an audio note in the browser and attach it to a specific session.
+The system SHALL allow a psychologist to record an audio note in the browser and attach it to a specific session. A session MAY have multiple notes.
 
 #### Scenario: Start and stop recording
 - **WHEN** a psychologist starts and then stops a voice recording on a session's page

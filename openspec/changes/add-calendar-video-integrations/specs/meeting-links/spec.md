@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Psychologist can connect video providers and choose a default
-The system SHALL let a psychologist connect Zoom and Microsoft Teams accounts via OAuth 2.0 from the Settings page, with tokens stored encrypted at the application level. Google Meet SHALL be available automatically when a Google Calendar connection is active, without a separate connection. The psychologist SHALL choose a default meeting provider (`NONE`, `GOOGLE_MEET`, `ZOOM`, `TEAMS`); only providers with an active connection MUST be selectable, and `NONE` MUST be the initial default.
+The system SHALL let a psychologist connect a Zoom account via OAuth 2.0 from the Settings page, with tokens stored encrypted at the application level. Google Meet SHALL be available automatically when a Google Calendar connection is active, without a separate connection. The psychologist SHALL choose a default meeting provider (`NONE`, `GOOGLE_MEET`, `ZOOM`); only providers with an active connection MUST be selectable, and `NONE` MUST be the initial default. The provider architecture MUST remain pluggable so additional providers (e.g., Microsoft Teams) can be added later without changing session lifecycle code.
 
 #### Scenario: Connect Zoom
 - **WHEN** the psychologist completes the Zoom OAuth consent

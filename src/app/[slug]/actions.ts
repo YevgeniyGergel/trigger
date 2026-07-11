@@ -13,6 +13,8 @@ import {
   bookingConfirmationForPsychologist,
   bookingConfirmationForClient,
 } from "@/lib/notifications";
+import { syncSessionCreated } from "@/lib/integrations/session-sync";
+import { isSlotBusy } from "@/lib/integrations/busy-cache";
 
 export type BookingFormState = {
   error?: string;
@@ -73,6 +75,12 @@ export async function createBooking(
   );
   if (!ipAllowed || !contactAllowed) {
     return { error: "Забагато спроб бронювання. Спробуйте пізніше." };
+  }
+
+  // Re-check Google Calendar busy intervals uncached — the slot list the
+  // client picked from may be up to ~60s stale (design.md D5).
+  if (await isSlotBusy(psychologist.id, startAt, endAt)) {
+    return { error: "Цей час щойно зайняли. Оберіть інший слот." };
   }
 
   let booking;
@@ -148,11 +156,17 @@ export async function createBooking(
     await notifyClient(
       booking.client,
       "BOOKING_CONFIRMATION",
-      bookingConfirmationForClient(startAt, booking.session.id),
+      bookingConfirmationForClient(startAt, booking.session.id, service.slotMinutes - service.breakMinutes),
       booking.session.id
     );
   } catch (error) {
     console.error("[booking] notification dispatch failed:", error);
+  }
+
+  try {
+    await syncSessionCreated(booking.session.id);
+  } catch (error) {
+    console.error("[booking] calendar sync failed:", error);
   }
 
   revalidatePath(`/${slug}`);

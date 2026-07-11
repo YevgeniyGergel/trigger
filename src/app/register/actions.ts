@@ -51,8 +51,27 @@ export async function registerPsychologist(
     const slug = await generateUniqueSlug(name);
 
     try {
+      // The nested create is atomic: the "exactly one default service"
+      // invariant must hold from the first day, so the default service is
+      // born in the same INSERT transaction as the psychologist row.
       await prisma.psychologist.create({
-        data: { name, email, passwordHash, slug },
+        data: {
+          name,
+          email,
+          passwordHash,
+          slug,
+          serviceTypes: {
+            create: {
+              name: "Стандартна консультація",
+              slotMinutes: 60,
+              breakMinutes: 10,
+              priceCents: null,
+              isDefault: true,
+              active: true,
+              sortOrder: 0,
+            },
+          },
+        },
       });
       break;
     } catch (error) {

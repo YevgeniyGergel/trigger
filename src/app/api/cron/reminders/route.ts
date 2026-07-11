@@ -15,6 +15,7 @@ export async function GET(request: Request) {
     include: {
       client: true,
       psychologist: true,
+      serviceType: true,
       notifications: { where: { type: "SESSION_REMINDER" } },
     },
   });
@@ -30,7 +31,14 @@ export async function GET(request: Request) {
       await notifyClient(
         session.client,
         "SESSION_REMINDER",
-        sessionReminderForClient(session.startAt, session.id),
+        sessionReminderForClient(
+          session.startAt,
+          session.id,
+          session.serviceType
+            ? session.serviceType.slotMinutes - session.serviceType.breakMinutes
+            : null,
+          session.meetingUrl
+        ),
         session.id
       );
       sent += 1;

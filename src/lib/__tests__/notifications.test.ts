@@ -164,10 +164,27 @@ describe("message builders", () => {
     expect(msg.telegramText).toContain("/session/sess_1");
   });
 
+  it("bookingConfirmationForClient states the clean session length when provided", () => {
+    const msg = bookingConfirmationForClient(startAt, "sess_1", 50);
+    expect(msg.emailHtml).toContain("тривалість 50 хв");
+    expect(msg.telegramText).toContain("тривалість 50 хв");
+  });
+
+  it("bookingConfirmationForClient omits the length for legacy sessions without a service", () => {
+    const msg = bookingConfirmationForClient(startAt, "sess_1", null);
+    expect(msg.emailHtml).not.toContain("тривалість");
+  });
+
   it("sessionReminderForClient produces a reminder message with a status page link", () => {
     const msg = sessionReminderForClient(startAt, "sess_1");
     expect(msg.subject).toBe("Нагадування про сесію");
     expect(msg.emailHtml).toContain("/session/sess_1");
+  });
+
+  it("sessionReminderForClient states the clean session length when provided", () => {
+    const msg = sessionReminderForClient(startAt, "sess_1", 50);
+    expect(msg.emailHtml).toContain("тривалість 50 хв");
+    expect(msg.telegramText).toContain("тривалість 50 хв");
   });
 
   it("sessionCancelledForClient includes the status page link", () => {

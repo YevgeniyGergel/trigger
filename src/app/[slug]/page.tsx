@@ -5,6 +5,7 @@ import { Logo } from "@/components/ui/logo";
 import { RippleBackdrop } from "@/components/ui/ripple";
 import { Eyebrow } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getCachedBusyIntervals, excludeTriggerEvents } from "@/lib/integrations/busy-cache";
 
 const BOOKING_WINDOW_DAYS = 14;
 
@@ -47,6 +48,14 @@ export default async function PublicBookingPage({
     }),
   ]);
 
+  // Google Calendar busy intervals, folded into blockedRanges like any other
+  // unavailable time. Events Trigger itself created show up in this list
+  // too (they're on the same calendar) — exclude any interval that exactly
+  // matches an existing session's [startAt, endAt) so it isn't double
+  // counted (design.md D5).
+  const busyIntervals = await getCachedBusyIntervals(psychologist.id, fromDate, toDate);
+  const externalBusyRanges = excludeTriggerEvents(busyIntervals, bookedSessions);
+
   return (
     <div className="relative min-h-screen">
       <RippleBackdrop />
@@ -88,7 +97,7 @@ export default async function PublicBookingPage({
               startTime: r.startTime,
               endTime: r.endTime,
             }))}
-            blockedRanges={blockedRanges.map((r) => ({
+            blockedRanges={[...blockedRanges, ...externalBusyRanges].map((r) => ({
               startAt: r.startAt.toISOString(),
               endAt: r.endAt.toISOString(),
             }))}

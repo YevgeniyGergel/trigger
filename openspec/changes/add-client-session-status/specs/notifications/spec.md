@@ -34,3 +34,7 @@ The system SHALL notify the client through their configured channels when the ps
 #### Scenario: Psychologist reschedules a session
 - **WHEN** a psychologist reschedules a session to a new date/time
 - **THEN** the system sends a notification to the client with the new date/time and a link to the session's public status page
+
+#### Scenario: Unpaid session expires automatically
+- **WHEN** a pending session is cancelled automatically because its unpaid hold expired (prepayment confirmation mode)
+- **THEN** the system sends the client a cancellation notification that explains the hold expired and includes a link to the session's public status page

@@ -6,6 +6,7 @@ import {
   updateServiceType,
   setServiceTypeActive,
   setDefaultServiceType,
+  deleteServiceType,
   moveServiceType,
   type ServiceTypeFormState,
 } from "./service-actions";
@@ -23,6 +24,7 @@ export type ServiceTypeRow = {
   priceCents: number | null;
   isDefault: boolean;
   active: boolean;
+  _count: { sessions: number };
 };
 
 function formatPrice(priceCents: number | null): string {
@@ -208,6 +210,23 @@ function ServiceRow({
           >
             {service.active ? "Деактивувати" : "Активувати"}
           </Button>
+          {!service.isDefault && service._count.sessions === 0 ? (
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              disabled={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  const result = await deleteServiceType(service.id);
+                  setError(result.error ?? null);
+                  router.refresh();
+                })
+              }
+            >
+              Видалити
+            </Button>
+          ) : null}
         </div>
       </div>
       {error ? (

@@ -5,9 +5,11 @@ import { ProfileForm } from "./profile-form";
 import { LiqpayForm } from "./liqpay-form";
 import { NotificationsForm } from "./notifications-form";
 import { NoteLanguageForm } from "./note-language-form";
+import { IntegrationsForm } from "./integrations-form";
 import { PageHeader, SectionTitle } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { listConnections } from "@/lib/integrations/connections";
 
 function SettingsSection({
   title,
@@ -36,9 +38,18 @@ function SettingsSection({
   );
 }
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ integrationError?: string }>;
+}) {
   const psychologist = await requireCurrentPsychologist();
   const liqpayConnected = psychologist.liqpayPrivateKeyEnc != null;
+  const { integrationError } = await searchParams;
+
+  const connections = await listConnections(psychologist.id);
+  const googleConnection = connections.find((c) => c.provider === "GOOGLE") ?? null;
+  const zoomConnection = connections.find((c) => c.provider === "ZOOM") ?? null;
 
   return (
     <div>
@@ -101,6 +112,26 @@ export default async function SettingsPage() {
             emailNotificationsEnabled={psychologist.emailNotificationsEnabled}
             telegramNotificationsEnabled={psychologist.telegramNotificationsEnabled}
             telegramLinked={psychologist.telegramChatId != null}
+          />
+        </SettingsSection>
+
+        <SettingsSection
+          title="Інтеграції"
+          description="Google Calendar синхронізує розклад і блокує зайняті слоти; Zoom та Google Meet автоматично створюють посилання на онлайн-зустріч."
+        >
+          <IntegrationsForm
+            googleConnection={
+              googleConnection
+                ? { status: googleConnection.status, externalAccountEmail: googleConnection.externalAccountEmail }
+                : null
+            }
+            zoomConnection={
+              zoomConnection
+                ? { status: zoomConnection.status, externalAccountEmail: zoomConnection.externalAccountEmail }
+                : null
+            }
+            defaultMeetingProvider={psychologist.defaultMeetingProvider}
+            integrationError={integrationError}
           />
         </SettingsSection>
       </div>

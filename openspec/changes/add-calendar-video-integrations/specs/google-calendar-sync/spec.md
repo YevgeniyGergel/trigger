@@ -22,7 +22,7 @@ The system SHALL let a psychologist connect exactly one Google account from the 
 - **THEN** the update/delete against the new account fails with "not found", which the system treats as success: the stale event id is cleared and (on reschedule) a fresh event is created in the new calendar
 
 ### Requirement: Sessions are exported to Google Calendar
-The system SHALL create a Google Calendar event on the psychologist's primary calendar when a session is created (PENDING or CONFIRMED), storing the event id on the session. The event MUST reflect the session time in the correct timezone and reference the client by name. When the session is rescheduled the event MUST be updated; when the session is cancelled — including a pending session that is declined or expires unpaid — the event MUST be deleted. Sync is strictly one-way (Trigger → Google): the system does not read back manual edits to Trigger-created events, and such edits MAY be overwritten on the next lifecycle change.
+The system SHALL create a Google Calendar event on the psychologist's primary calendar when a session is created (PENDING or CONFIRMED), storing the event id on the session. The event MUST reflect the session time in the correct timezone and reference the client by name. When the session is rescheduled the event MUST be updated; when the session is cancelled — including a pending session cancelled manually or auto-cancelled when its unpaid hold expires (prepayment confirmation mode) — the event MUST be deleted. Sync is strictly one-way (Trigger → Google): the system does not read back manual edits to Trigger-created events, and such edits MAY be overwritten on the next lifecycle change.
 
 #### Scenario: Event created on booking
 - **WHEN** a client books a session and the psychologist has an active Google connection
@@ -58,3 +58,7 @@ The system SHALL treat busy intervals from the connected Google Calendar as unav
 #### Scenario: Booking race against a new external event
 - **WHEN** a client submits a booking for a slot that has become busy in Google Calendar since the page loaded
 - **THEN** the system re-checks busy intervals at submission time and rejects the booking with a "slot no longer available" error
+
+#### Scenario: Reschedule into a busy interval rejected
+- **WHEN** a psychologist reschedules a session to a time that overlaps a busy interval from the connected calendar
+- **THEN** the system rejects the reschedule with a conflict error, the same way it rejects conflicts with existing sessions and blocked ranges

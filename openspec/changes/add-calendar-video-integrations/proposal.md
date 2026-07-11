@@ -13,17 +13,16 @@ Psychologists currently manage their Trigger schedule in isolation: sessions boo
 - **Video conferencing integration**: a session automatically gets a meeting link at confirmation time, based on the psychologist's chosen provider:
   - **Google Meet** — via the Calendar event's `conferenceData` (no extra connection needed once Calendar is linked).
   - **Zoom** — per-psychologist OAuth connection, meeting created via Zoom API.
-  - **Microsoft Teams** — per-psychologist OAuth connection, meeting created via Microsoft Graph `onlineMeetings`.
-  - Provider architecture is pluggable so more providers can be added later.
+  - Provider architecture is pluggable so more providers can be added later. (Microsoft Teams was considered and dropped for v1: Ukrainian private psychologists overwhelmingly use Zoom/Meet, and Teams `onlineMeetings` requires work/school accounts.)
 - **Meeting link surfaced everywhere it matters**: booking confirmation and reminder notifications (email + Telegram), the client-facing session status page, and the psychologist's session detail page.
-- **Settings UI**: a new "Integrations" section for connecting/disconnecting Google Calendar, Zoom, and Teams, and choosing the default meeting provider (or "no online meeting").
+- **Settings UI**: a new "Integrations" section for connecting/disconnecting Google Calendar and Zoom, and choosing the default meeting provider (or "no online meeting").
 
 ## Capabilities
 
 ### New Capabilities
 
 - `google-calendar-sync`: connecting a Google account, exporting Trigger sessions to Google Calendar (create/update/delete), and importing busy intervals into slot availability.
-- `meeting-links`: connecting video providers (Zoom, Teams; Meet via Calendar), automatic meeting creation/cancellation for sessions, and delivery of the link to psychologist and client.
+- `meeting-links`: connecting video providers (Zoom; Meet via Calendar), automatic meeting creation/cancellation for sessions, and delivery of the link to psychologist and client.
 
 ### Modified Capabilities
 
@@ -36,5 +35,5 @@ Psychologists currently manage their Trigger schedule in isolation: sessions boo
 - **Booking & session lifecycle**: `src/app/[slug]/actions.ts`, `src/app/(cabinet)/sessions/actions.ts` — hook calendar event and meeting creation into confirm/reschedule/cancel.
 - **Notifications**: `src/lib/notifications.ts` templates include the meeting link.
 - **Settings**: `src/app/(cabinet)/settings/` — new integrations section + server actions; OAuth callback routes under `src/app/api/integrations/`.
-- **New dependencies**: none — Google Calendar, Zoom, and Microsoft Graph are called over REST via `fetch` (see design D2); new env vars for OAuth client IDs/secrets.
-- **Security**: OAuth tokens encrypted at rest via existing `src/lib/crypto.ts`; scopes kept minimal (Calendar events + free/busy; Zoom `meeting:write`; Graph `OnlineMeetings.ReadWrite`).
+- **New dependencies**: none — Google Calendar and Zoom are called over REST via `fetch` (see design D2); new env vars for OAuth client IDs/secrets.
+- **Security**: OAuth tokens encrypted at rest via existing `src/lib/crypto.ts`; scopes kept minimal (Calendar events + free/busy; Zoom `meeting:write`).

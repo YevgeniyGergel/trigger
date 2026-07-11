@@ -46,6 +46,16 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/slot-conflict", () => ({
   checkSlotConflict: (...args: unknown[]) => checkSlotConflict(...args),
 }));
+vi.mock("@/lib/integrations/session-sync", () => ({
+  syncSessionCreated: vi.fn(),
+  syncSessionConfirmed: vi.fn(),
+  syncSessionCancelled: vi.fn(),
+  syncSessionRescheduled: vi.fn(),
+  retrySessionSync: vi.fn(),
+}));
+vi.mock("@/lib/integrations/busy-cache", () => ({
+  isSlotBusy: vi.fn().mockResolvedValue(false),
+}));
 vi.mock("@/lib/notifications", () => ({
   notifyClient: (...args: unknown[]) => notifyClient(...args),
   sessionCancelledForClient: (startAt: Date, sessionId: string) => ({
@@ -60,7 +70,8 @@ vi.mock("@/lib/notifications", () => ({
   }),
 }));
 
-const { cancelSession, rescheduleSession, createManualSession } = await import("../actions");
+const { cancelSession, rescheduleSession, createManualSession, updateSessionPrice } =
+  await import("../actions");
 
 const client = { id: "client_1", email: "client@example.com", telegramChatId: null };
 
@@ -164,6 +175,44 @@ describe("rescheduleSession", () => {
 
     expect(result.error).toBe("У цей час вже є інша сесія");
     expect(notifyClient).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateSessionPrice", () => {
+  beforeEach(() => {
+    requireCurrentPsychologist.mockReset().mockResolvedValue({ id: "psych_1" });
+    sessionUpdateMany.mockReset();
+    sessionFindFirst.mockReset();
+  });
+
+  it("updates the price of an unpaid session", async () => {
+    sessionUpdateMany.mockResolvedValue({ count: 1 });
+
+    const result = await updateSessionPrice("sess_1", 1800);
+
+    expect(result.error).toBeUndefined();
+    expect(sessionUpdateMany).toHaveBeenCalledWith({
+      where: { id: "sess_1", psychologistId: "psych_1", paymentStatus: { not: "PAID" } },
+      data: { priceCents: 180000 },
+    });
+  });
+
+  it("refuses to change the price of a paid session", async () => {
+    sessionUpdateMany.mockResolvedValue({ count: 0 });
+    sessionFindFirst.mockResolvedValue({ id: "sess_1", paymentStatus: "PAID" });
+
+    const result = await updateSessionPrice("sess_1", 1800);
+
+    expect(result.error).toBe("Сесію вже оплачено — її вартість змінити не можна");
+  });
+
+  it("returns not-found when the session does not exist", async () => {
+    sessionUpdateMany.mockResolvedValue({ count: 0 });
+    sessionFindFirst.mockResolvedValue(null);
+
+    const result = await updateSessionPrice("sess_missing", 1800);
+
+    expect(result.error).toBe("Сесію не знайдено");
   });
 });
 

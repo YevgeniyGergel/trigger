@@ -5,7 +5,7 @@ The system SHALL provide a public, unauthenticated, read-only page at `/session/
 
 #### Scenario: View session status
 - **WHEN** a client opens `/session/[sessionId]` for an existing session
-- **THEN** the system displays the psychologist's name, the session date/time, the session status (pending/confirmed/cancelled/rescheduled), and the payment status
+- **THEN** the system displays the psychologist's name, the session date/time (in the visitor's browser timezone, labeled when it differs from Europe/Kyiv), the session status (pending/confirmed/cancelled/completed), and the payment status; a reschedule is reflected as the updated date/time, not a separate status
 
 #### Scenario: Unknown session id
 - **WHEN** a visitor opens `/session/[sessionId]` for an id that does not correspond to any session

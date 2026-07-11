@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { IntegrationProvider, MeetingProviderType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { profileUpdateSchema, noteLanguageSchema } from "@/lib/validation/psychologist";
 import { liqpayCredentialsSchema } from "@/lib/validation/liqpay";
@@ -9,6 +10,8 @@ import { isUniqueConstraintError } from "@/lib/prisma-errors";
 import { encryptSecret } from "@/lib/crypto";
 import { buildTelegramLinkUrl } from "@/lib/telegram";
 import { randomUUID } from "node:crypto";
+import { getConnection, deleteConnection } from "@/lib/integrations/connections";
+import { OAUTH_PROVIDERS } from "@/lib/integrations/oauth-config";
 
 export type ProfileFormState = {
   error?: string;
@@ -180,6 +183,80 @@ export async function updateLiqpayCredentials(
       liqpayMode: mode,
       ...(liqpayPrivateKeyEnc ? { liqpayPrivateKeyEnc } : {}),
     },
+  });
+
+  revalidatePath("/settings");
+
+  return { success: true };
+}
+
+// The meeting provider that rides on each integration provider's
+// connection — used to know which defaultMeetingProvider values must reset
+// to NONE when that connection is removed. Google Meet has no connection of
+// its own (design.md meeting-links "Disconnecting Google Calendar while
+// Meet is default").
+const RIDES_ON: Record<IntegrationProvider, MeetingProviderType> = {
+  GOOGLE: "GOOGLE_MEET",
+  ZOOM: "ZOOM",
+};
+
+export async function disconnectIntegration(provider: IntegrationProvider): Promise<void> {
+  const psychologist = await requireCurrentPsychologist();
+
+  const connection = await getConnection(psychologist.id, provider);
+  if (connection) {
+    try {
+      const config = OAUTH_PROVIDERS[provider];
+      await fetch(config.revokeUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ token: connection.accessToken }),
+        signal: AbortSignal.timeout(5_000),
+      });
+    } catch (error) {
+      console.error(`[settings] best-effort ${provider} token revocation failed:`, error);
+    }
+  }
+
+  await deleteConnection(psychologist.id, provider);
+
+  if (psychologist.defaultMeetingProvider === RIDES_ON[provider]) {
+    await prisma.psychologist.update({
+      where: { id: psychologist.id },
+      data: { defaultMeetingProvider: "NONE" },
+    });
+  }
+
+  revalidatePath("/settings");
+}
+
+export type MeetingProviderFormState = {
+  error?: string;
+  success?: boolean;
+};
+
+export async function updateDefaultMeetingProvider(
+  _prevState: MeetingProviderFormState,
+  formData: FormData
+): Promise<MeetingProviderFormState> {
+  const psychologist = await requireCurrentPsychologist();
+
+  const value = String(formData.get("defaultMeetingProvider") ?? "NONE") as MeetingProviderType;
+  if (!["NONE", "GOOGLE_MEET", "ZOOM"].includes(value)) {
+    return { error: "Некоректний провайдер" };
+  }
+
+  if (value !== "NONE") {
+    const requiredProvider: IntegrationProvider = value === "GOOGLE_MEET" ? "GOOGLE" : "ZOOM";
+    const connection = await getConnection(psychologist.id, requiredProvider);
+    if (!connection || connection.status !== "ACTIVE") {
+      return { error: "Спершу підключіть відповідний сервіс" };
+    }
+  }
+
+  await prisma.psychologist.update({
+    where: { id: psychologist.id },
+    data: { defaultMeetingProvider: value },
   });
 
   revalidatePath("/settings");

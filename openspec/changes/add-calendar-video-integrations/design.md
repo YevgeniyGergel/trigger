@@ -21,10 +21,10 @@ Trigger is a Next.js (App Router) + Prisma/PostgreSQL cabinet for psychologists.
 ## Decisions
 
 ### D1: One `IntegrationConnection` table for all providers
-A single model keyed by `(psychologistId, provider)` with `provider ∈ {GOOGLE, ZOOM, TEAMS}`, encrypted `accessTokenEnc` / `refreshTokenEnc`, `expiresAt`, `externalAccountEmail`, and a `status` field. Alternative — separate tables per provider — rejected: the shape is identical (OAuth token pair + metadata) and a single table keeps the settings UI and token-refresh code generic.
+A single model keyed by `(psychologistId, provider)` with `provider ∈ {GOOGLE, ZOOM}`, encrypted `accessTokenEnc` / `refreshTokenEnc`, `expiresAt`, `externalAccountEmail`, and a `status` field. Alternative — separate tables per provider — rejected: the shape is identical (OAuth token pair + metadata) and a single table keeps the settings UI and token-refresh code generic. Microsoft Teams dropped for v1 (near-zero demand among UA private psychologists; requires work/school accounts) — the enum extends trivially if that changes.
 
 ### D2: REST via `fetch`, no provider SDKs
-Google Calendar, Zoom, and Microsoft Graph are all called with plain `fetch` wrappers in `src/lib/integrations/` (`google-calendar.ts`, `zoom.ts`, `teams.ts`). Alternative — `googleapis` npm package — rejected: it's heavy (~10 MB), brings its own auth plumbing, and we need ~6 endpoints total. A shared `oauthFetch()` helper handles token refresh (refresh on 401 or when `expiresAt` is near, persist the new token).
+Google Calendar and Zoom are called with plain `fetch` wrappers in `src/lib/integrations/` (`google-calendar.ts`, `zoom.ts`). Alternative — `googleapis` npm package — rejected: it's heavy (~10 MB), brings its own auth plumbing, and we need ~6 endpoints total. A shared `oauthFetch()` helper handles token refresh (refresh on 401 or when `expiresAt` is near, persist the new token).
 
 ### D3: Meeting providers behind a `MeetingProvider` interface
 ```ts
@@ -43,21 +43,21 @@ Calendar event and meeting operations run inline (fire after the DB write inside
 Slot computation calls Google's `freeBusy` endpoint for the visible window, cached in-memory ~60 s per psychologist. Trigger-created events are excluded by subtracting intervals that exactly match existing session intervals (cheap and sufficient since Trigger events are also sessions we already subtract). On booking submission the busy check is repeated uncached; overlap → reject with the existing "slot taken" error path. On lookup failure, degrade to Trigger-only data (availability may briefly overbook against personal events — accepted trade-off, see risks).
 
 ### D6: Schema changes
-- `enum IntegrationProvider { GOOGLE, ZOOM, TEAMS }`, `enum MeetingProviderType { NONE, GOOGLE_MEET, ZOOM, TEAMS }`
+- `enum IntegrationProvider { GOOGLE, ZOOM }`, `enum MeetingProviderType { NONE, GOOGLE_MEET, ZOOM }`
 - `model IntegrationConnection` as in D1, `@@unique([psychologistId, provider])`
 - `Psychologist.defaultMeetingProvider MeetingProviderType @default(NONE)`
 - `Session`: `calendarEventId String?`, `meetingProvider MeetingProviderType @default(NONE)`, `meetingUrl String?`, `meetingExternalId String?`, `syncPending Boolean @default(false)`
 
 ### D7: OAuth routes
-`src/app/api/integrations/[provider]/connect/route.ts` (redirect to consent, `state` = signed psychologist id + CSRF nonce) and `.../callback/route.ts` (code exchange, token encryption, upsert connection, redirect to `/settings`). Mirrors the Telegram-linking redirect pattern already in settings. Env vars: `GOOGLE_CLIENT_ID/SECRET`, `ZOOM_CLIENT_ID/SECRET`, `MS_CLIENT_ID/SECRET`, plus `INTEGRATIONS_REDIRECT_BASE_URL`.
+`src/app/api/integrations/[provider]/connect/route.ts` (redirect to consent, `state` = signed psychologist id + CSRF nonce) and `.../callback/route.ts` (code exchange, token encryption, upsert connection, redirect to `/settings`). Mirrors the Telegram-linking redirect pattern already in settings. Env vars: `GOOGLE_CLIENT_ID/SECRET`, `ZOOM_CLIENT_ID/SECRET`, plus `INTEGRATIONS_REDIRECT_BASE_URL`.
 
 ## Risks / Trade-offs
 
 - [Token refresh failure / revoked access] → connection marked `status = EXPIRED`, psychologist notified in Settings; sync silently pauses instead of erroring bookings.
 - [Free/busy degradation can allow a double-booking against a personal event] → accepted for v1; failures are logged and the psychologist still sees the session in Trigger and can reschedule.
 - [Google verification for Calendar scopes (restricted-ish review, consent screen)] → start in "testing" mode for development; production requires Google app verification — flagged as a deployment prerequisite, not a code task.
-- [Teams `onlineMeetings` requires work/school accounts] → personal Microsoft accounts may fail; surface a clear error in Settings on connect.
 - [Inline sync adds latency to booking actions] → calls are bounded by short timeouts (~5 s) and failures fall back to `syncPending`.
+- [The client session status page now exposes the meeting join URL to anyone holding the session link] → re-assessed risk vs. the original "read-only, no sensitive data" assumption of `add-client-session-status`: accepted for v1 (the client legitimately needs the link and can forward it regardless), but onboarding guidance recommends enabling the provider's waiting room / host approval for therapy calls.
 
 ## Migration Plan
 

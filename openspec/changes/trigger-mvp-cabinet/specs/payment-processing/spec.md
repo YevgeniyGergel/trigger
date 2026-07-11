@@ -42,11 +42,15 @@ The system SHALL generate a LiqPay checkout link for a session's price and allow
 
 #### Scenario: Payment completed
 - **WHEN** LiqPay notifies the system via webhook that a payment succeeded
-- **THEN** the system marks the session's payment status as "paid" and records the provider transaction ID
+- **THEN** the system marks the session's payment status as "paid", records the provider transaction ID, and — if the psychologist uses prepayment confirmation mode — sets the session status to "confirmed"
 
-#### Scenario: Payment failed or abandoned
-- **WHEN** LiqPay notifies the system that a payment failed, or the client abandons checkout
-- **THEN** the system keeps the session's payment status as "pending" and allows the client to retry payment
+#### Scenario: Payment failed
+- **WHEN** LiqPay notifies the system via webhook that a payment attempt failed
+- **THEN** the system sets the session's payment status to "failed" and allows the client to retry payment; a retry generates a new checkout and returns the payment status to "pending"
+
+#### Scenario: Checkout abandoned
+- **WHEN** the client opens a checkout but never completes it (no webhook arrives)
+- **THEN** the session's payment status remains "pending" and the client can reopen the payment link at any time
 
 ### Requirement: Payment Status Visibility
 The system SHALL display the payment status of each session (pending, paid, failed, refunded) to the psychologist in the cabinet.
@@ -54,6 +58,21 @@ The system SHALL display the payment status of each session (pending, paid, fail
 #### Scenario: View payment status in session list
 - **WHEN** a psychologist views their session list or calendar
 - **THEN** the system shows the current payment status for each session
+
+### Requirement: Refund on Cancellation of a Paid Session
+The system SHALL, when a psychologist cancels a session whose payment status is "paid", offer to refund the payment via the LiqPay refund API using the psychologist's merchant credentials. A successful refund SHALL set the payment status to "refunded" and notify the client. The psychologist MAY decline the refund (e.g., per their cancellation policy), in which case the payment status stays "paid" and the session is cancelled.
+
+#### Scenario: Refund issued on cancellation
+- **WHEN** a psychologist cancels a paid session and confirms the refund prompt
+- **THEN** the system issues a refund through LiqPay, sets the payment status to "refunded" upon provider confirmation, and notifies the client
+
+#### Scenario: Refund declined by psychologist
+- **WHEN** a psychologist cancels a paid session and declines the refund prompt
+- **THEN** the session is cancelled, the payment status remains "paid", and no refund request is sent
+
+#### Scenario: Refund request fails
+- **WHEN** the LiqPay refund request fails
+- **THEN** the payment status remains "paid", the psychologist sees the error with a retry action, and no client notification about a refund is sent
 
 ### Requirement: Webhook Signature Verification
 The system SHALL verify the authenticity of incoming LiqPay webhook notifications before updating any payment status.

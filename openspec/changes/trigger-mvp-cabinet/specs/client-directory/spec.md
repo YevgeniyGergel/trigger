@@ -11,6 +11,14 @@ The system SHALL allow a psychologist to create a client record with name and co
 - **WHEN** a new person books a session via the public booking page using contact info not already in the psychologist's client list
 - **THEN** the system automatically creates a client record linked to that booking
 
+#### Scenario: Booking matched to an existing client
+- **WHEN** a booking is submitted whose email matches an existing client of that psychologist (email is the matching key; phone is informational)
+- **THEN** the system links the session to the existing client record instead of creating a duplicate
+
+#### Scenario: Deactivated client books again
+- **WHEN** a booking is submitted whose email matches a deactivated client
+- **THEN** the system links the session to that record and reactivates the client
+
 ### Requirement: Client List and Profile View
 The system SHALL allow a psychologist to view a list of their clients and open a client's profile showing contact info and session history.
 
