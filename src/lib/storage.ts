@@ -6,7 +6,9 @@ const bucketName = process.env.R2_BUCKET_NAME;
 
 export const r2Client = new S3Client({
   region: "auto",
-  endpoint: accountId ? `https://${accountId}.r2.cloudflarestorage.com` : undefined,
+  // Bucket is provisioned in the EU jurisdiction for data residency (see design.md) —
+  // EU jurisdiction buckets are only reachable via the eu.r2.cloudflarestorage.com endpoint.
+  endpoint: accountId ? `https://${accountId}.eu.r2.cloudflarestorage.com` : undefined,
   credentials: {
     accessKeyId: process.env.R2_ACCESS_KEY_ID ?? "",
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
