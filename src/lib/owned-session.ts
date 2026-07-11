@@ -8,6 +8,6 @@ import { prisma } from "@/lib/prisma";
 export async function getOwnedSession(psychologistId: string, sessionId: string) {
   return prisma.session.findFirst({
     where: { id: sessionId, psychologistId },
-    include: { client: true, note: true },
+    include: { client: true, note: true, serviceType: true },
   });
 }

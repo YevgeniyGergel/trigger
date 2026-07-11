@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { generateAvailableSlots } from "@/lib/slots";
 import { BookingForm } from "./booking-form";
 import { Logo } from "@/components/ui/logo";
 import { RippleBackdrop } from "@/components/ui/ripple";
@@ -27,7 +26,11 @@ export default async function PublicBookingPage({
   // Kyiv-calendar-exact boundary, so it doesn't need timezone conversion.
   const toDate = new Date(fromDate.getTime() + BOOKING_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
-  const [workingHours, blockedRanges, bookedSessions] = await Promise.all([
+  const [services, workingHours, blockedRanges, bookedSessions] = await Promise.all([
+    prisma.serviceType.findMany({
+      where: { psychologistId: psychologist.id, active: true },
+      orderBy: { sortOrder: "asc" },
+    }),
     prisma.workingHour.findMany({ where: { psychologistId: psychologist.id } }),
     prisma.blockedRange.findMany({
       where: { psychologistId: psychologist.id, endAt: { gt: fromDate }, startAt: { lt: toDate } },
@@ -43,16 +46,6 @@ export default async function PublicBookingPage({
       select: { startAt: true, endAt: true },
     }),
   ]);
-
-  const slots = generateAvailableSlots({
-    workingHours,
-    sessionDurationMinutes: psychologist.sessionDurationMinutes,
-    breakDurationMinutes: psychologist.breakDurationMinutes,
-    blockedRanges,
-    bookedRanges: bookedSessions,
-    fromDate,
-    toDate,
-  });
 
   return (
     <div className="relative min-h-screen">
@@ -72,21 +65,39 @@ export default async function PublicBookingPage({
           ) : null}
         </div>
 
-        <h2 className="mt-10 font-display text-xl font-medium tracking-tight text-ink">
-          Оберіть зручний час
-        </h2>
-
-        {slots.length === 0 ? (
-          <div className="mt-5">
+        {services.length === 0 ? (
+          <div className="mt-10">
             <EmptyState
-              title="Наразі немає доступних слотів"
-              description="Спробуйте перевірити пізніше — розклад оновлюється."
+              title="Запис поки недоступний"
+              description="Психолог ще не додав жодної послуги для запису."
             />
           </div>
         ) : (
           <BookingForm
             slug={slug}
-            slots={slots.map((s) => ({ startAt: s.startAt.toISOString(), endAt: s.endAt.toISOString() }))}
+            services={services.map((s) => ({
+              id: s.id,
+              name: s.name,
+              slotMinutes: s.slotMinutes,
+              breakMinutes: s.breakMinutes,
+              priceCents: s.priceCents,
+              isDefault: s.isDefault,
+            }))}
+            workingHours={workingHours.map((r) => ({
+              weekday: r.weekday,
+              startTime: r.startTime,
+              endTime: r.endTime,
+            }))}
+            blockedRanges={blockedRanges.map((r) => ({
+              startAt: r.startAt.toISOString(),
+              endAt: r.endAt.toISOString(),
+            }))}
+            bookedRanges={bookedSessions.map((r) => ({
+              startAt: r.startAt.toISOString(),
+              endAt: r.endAt.toISOString(),
+            }))}
+            fromDate={fromDate.toISOString()}
+            toDate={toDate.toISOString()}
           />
         )}
 

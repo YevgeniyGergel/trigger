@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardBody } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ButtonLink } from "@/components/ui/button";
 
 const DAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
 
@@ -79,12 +80,12 @@ export default async function SessionsPage({
             startAt: { gte: weekStart, lt: weekEnd },
           },
           orderBy: { startAt: "asc" },
-          include: { client: true },
+          include: { client: true, serviceType: true },
         }),
     prisma.session.findMany({
       where: { psychologistId: psychologist.id, status: "PENDING" },
       orderBy: { startAt: "asc" },
-      include: { client: true },
+      include: { client: true, serviceType: true },
     }),
   ]);
 
@@ -95,6 +96,7 @@ export default async function SessionsPage({
           eyebrow="Потребують уваги"
           title="Сесії"
           description="Усі запити на сесії, які ще не підтверджено, — незалежно від тижня."
+          actions={<ButtonLink href="/sessions/new">Нова сесія</ButtonLink>}
         />
         <FilterTabs active="pending" pendingCount={pendingSessions.length} />
 
@@ -123,6 +125,9 @@ export default async function SessionsPage({
                           , {formatKyiv(s.startAt, { hour: "2-digit", minute: "2-digit" })}
                         </span>
                         <span className="font-medium text-ink">{s.client.name}</span>
+                        {s.serviceType ? (
+                          <span className="text-sm text-ink-muted">{s.serviceType.name}</span>
+                        ) : null}
                       </div>
                       <Badge tone="warning">очікує підтвердження</Badge>
                     </div>
@@ -164,6 +169,9 @@ export default async function SessionsPage({
         title="Сесії"
         actions={
           <div className="flex items-center gap-2">
+            <ButtonLink href="/sessions/new" size="sm">
+              Нова сесія
+            </ButtonLink>
             <Link
               href={`/sessions?week=${prevWeek}`}
               aria-label="Попередній тиждень"
@@ -238,6 +246,9 @@ export default async function SessionsPage({
                           <div className="mt-1 truncate font-medium text-ink">
                             {s.client.name}
                           </div>
+                          {s.serviceType ? (
+                            <div className="truncate text-ink-faint">{s.serviceType.name}</div>
+                          ) : null}
                           <SessionActions
                             sessionId={s.id}
                             status={s.status}

@@ -39,17 +39,28 @@ export async function createBooking(
     phone: formData.get("phone"),
     email: formData.get("email"),
     startAt: formData.get("startAt"),
+    serviceTypeId: formData.get("serviceTypeId"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Некоректні дані" };
   }
 
-  const { name, phone, email, startAt: startAtRaw } = parsed.data;
+  const { name, phone, email, startAt: startAtRaw, serviceTypeId } = parsed.data;
   const startAt = new Date(startAtRaw);
   if (Number.isNaN(startAt.getTime()) || startAt < new Date()) {
     return { error: "Обраний час більше недоступний. Оберіть інший слот." };
   }
-  const endAt = new Date(startAt.getTime() + psychologist.sessionDurationMinutes * 60_000);
+
+  // Never trust client-submitted duration/price — re-derive endAt and price
+  // from the service record itself, and reject services that don't belong
+  // to this psychologist or aren't currently bookable.
+  const service = await prisma.serviceType.findFirst({
+    where: { id: serviceTypeId, psychologistId: psychologist.id, active: true },
+  });
+  if (!service) {
+    return { error: "Обрана послуга недоступна. Оберіть іншу." };
+  }
+  const endAt = new Date(startAt.getTime() + service.slotMinutes * 60_000);
 
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const contactKey = (email || phone || "").toLowerCase();
@@ -102,10 +113,11 @@ export async function createBooking(
           data: {
             psychologistId: psychologist.id,
             clientId: client.id,
+            serviceTypeId: service.id,
             startAt,
             endAt,
             status: "PENDING",
-            priceCents: psychologist.defaultSessionPriceCents ?? null,
+            priceCents: service.priceCents,
           },
         });
 

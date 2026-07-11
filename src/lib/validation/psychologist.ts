@@ -18,12 +18,6 @@ export const profileUpdateSchema = z.object({
     .max(60)
     .regex(/^[a-z0-9-]+$/, "Слаг може містити лише латинські літери, цифри та дефіс"),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
-  defaultSessionPriceCents: z
-    .number()
-    .int()
-    .nonnegative()
-    .optional()
-    .nullable(),
 });
 
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;

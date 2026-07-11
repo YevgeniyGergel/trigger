@@ -4,11 +4,26 @@ const requireCurrentPsychologist = vi.fn();
 const sessionUpdateMany = vi.fn();
 const sessionFindUnique = vi.fn();
 const sessionFindFirst = vi.fn();
+const clientFindFirst = vi.fn();
+const serviceTypeFindFirst = vi.fn();
 const transaction = vi.fn();
 const notifyClient = vi.fn();
 const checkSlotConflict = vi.fn();
+const redirect = vi.fn();
+
+class RedirectSentinel extends Error {
+  constructor(readonly url: string) {
+    super("NEXT_REDIRECT");
+  }
+}
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  redirect: (url: string) => {
+    redirect(url);
+    throw new RedirectSentinel(url);
+  },
+}));
 vi.mock("@/lib/current-psychologist", () => ({
   requireCurrentPsychologist: () => requireCurrentPsychologist(),
 }));
@@ -18,6 +33,12 @@ vi.mock("@/lib/prisma", () => ({
       updateMany: (...args: unknown[]) => sessionUpdateMany(...args),
       findUnique: (...args: unknown[]) => sessionFindUnique(...args),
       findFirst: (...args: unknown[]) => sessionFindFirst(...args),
+    },
+    client: {
+      findFirst: (...args: unknown[]) => clientFindFirst(...args),
+    },
+    serviceType: {
+      findFirst: (...args: unknown[]) => serviceTypeFindFirst(...args),
     },
     $transaction: (...args: unknown[]) => transaction(...args),
   },
@@ -39,7 +60,7 @@ vi.mock("@/lib/notifications", () => ({
   }),
 }));
 
-const { cancelSession, rescheduleSession } = await import("../actions");
+const { cancelSession, rescheduleSession, createManualSession } = await import("../actions");
 
 const client = { id: "client_1", email: "client@example.com", telegramChatId: null };
 
@@ -143,5 +164,75 @@ describe("rescheduleSession", () => {
 
     expect(result.error).toBe("У цей час вже є інша сесія");
     expect(notifyClient).not.toHaveBeenCalled();
+  });
+});
+
+describe("createManualSession", () => {
+  const service = {
+    id: "svc_1",
+    slotMinutes: 120,
+    priceCents: 200000,
+  };
+
+  beforeEach(() => {
+    requireCurrentPsychologist.mockReset().mockResolvedValue({ id: "psych_1" });
+    clientFindFirst.mockReset().mockResolvedValue(client);
+    serviceTypeFindFirst.mockReset().mockResolvedValue(service);
+    checkSlotConflict.mockReset().mockResolvedValue(null);
+    transaction.mockReset();
+    redirect.mockReset();
+  });
+
+  function formDataWith(overrides: Partial<{ clientId: string; serviceTypeId: string; startAt: string }> = {}) {
+    const formData = new FormData();
+    formData.set("clientId", overrides.clientId ?? client.id);
+    formData.set("serviceTypeId", overrides.serviceTypeId ?? service.id);
+    formData.set("startAt", overrides.startAt ?? "2026-07-21T15:30");
+    return formData;
+  }
+
+  it("derives endAt and price from the service and redirects to the new session", async () => {
+    const tx = {
+      session: {
+        create: vi.fn().mockResolvedValue({ id: "sess_new" }),
+      },
+    };
+    transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(tx));
+
+    await expect(createManualSession({}, formDataWith())).rejects.toThrow(RedirectSentinel);
+
+    expect(tx.session.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          serviceTypeId: service.id,
+          priceCents: service.priceCents,
+          status: "CONFIRMED",
+        }),
+      })
+    );
+    const createdData = tx.session.create.mock.calls[0][0].data;
+    const durationMs = createdData.endAt.getTime() - createdData.startAt.getTime();
+    expect(durationMs).toBe(service.slotMinutes * 60_000);
+    expect(redirect).toHaveBeenCalledWith("/sessions/sess_new");
+  });
+
+  it("rejects an inactive or foreign service without creating a session", async () => {
+    serviceTypeFindFirst.mockResolvedValue(null);
+
+    const result = await createManualSession({}, formDataWith());
+
+    expect(result.error).toBe("Обрана послуга недоступна");
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it("returns a conflict error when the slot overlaps an existing session", async () => {
+    const tx = { session: { create: vi.fn() } };
+    checkSlotConflict.mockResolvedValue("session_overlap");
+    transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(tx));
+
+    const result = await createManualSession({}, formDataWith());
+
+    expect(result.error).toBe("У цей час вже є інша сесія");
+    expect(tx.session.create).not.toHaveBeenCalled();
   });
 });

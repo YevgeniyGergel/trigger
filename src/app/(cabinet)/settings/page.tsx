@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { requireCurrentPsychologist } from "@/lib/current-psychologist";
 import { ProfileForm } from "./profile-form";
 import { LiqpayForm } from "./liqpay-form";
@@ -49,19 +50,22 @@ export default async function SettingsPage() {
       <div className="mt-10 space-y-10">
         <SettingsSection
           title="Публічний профіль"
-          description="Ім'я, посилання для запису, опис і стандартна вартість сесії — те, що бачать клієнти."
+          description="Ім'я, посилання для запису та опис — те, що бачать клієнти. Тривалість і вартість сесій налаштовуються на сторінці Розклад."
         >
           <ProfileForm
             defaultValues={{
               name: psychologist.name,
               slug: psychologist.slug,
               description: psychologist.description ?? "",
-              defaultSessionPriceUah:
-                psychologist.defaultSessionPriceCents != null
-                  ? String(psychologist.defaultSessionPriceCents / 100)
-                  : "",
             }}
           />
+          <p className="mt-4 text-sm text-ink-muted">
+            Послуги, їх тривалість і вартість —{" "}
+            <Link href="/schedule" className="font-medium text-sage-700 hover:underline">
+              на сторінці Розклад
+            </Link>
+            .
+          </p>
         </SettingsSection>
 
         <SettingsSection

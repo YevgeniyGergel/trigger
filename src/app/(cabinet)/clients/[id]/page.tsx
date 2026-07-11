@@ -9,6 +9,7 @@ import { PageHeader, SectionTitle } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ButtonLink } from "@/components/ui/button";
 import { formatKyiv } from "@/lib/timezone";
 
 const STATUS_BADGES: Record<
@@ -61,7 +62,14 @@ export default async function ClientDetailPage({
       <PageHeader
         eyebrow="Клієнт"
         title={client.name}
-        actions={<DeactivateButton clientId={client.id} active={client.active} />}
+        actions={
+          <>
+            <ButtonLink href={`/sessions/new?clientId=${client.id}`} variant="secondary">
+              Нова сесія
+            </ButtonLink>
+            <DeactivateButton clientId={client.id} active={client.active} />
+          </>
+        }
       />
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">

@@ -21,26 +21,17 @@ export async function updateProfile(
 ): Promise<ProfileFormState> {
   const psychologist = await requireCurrentPsychologist();
 
-  const priceRaw = formData.get("defaultSessionPrice");
-  const priceRawTrimmed = typeof priceRaw === "string" ? priceRaw.trim() : "";
-  const priceUah = priceRawTrimmed !== "" ? Number(priceRawTrimmed) : null;
-
-  if (priceUah !== null && Number.isNaN(priceUah)) {
-    return { error: "Вартість сесії має бути числом" };
-  }
-
   const parsed = profileUpdateSchema.safeParse({
     name: formData.get("name"),
     slug: formData.get("slug"),
     description: formData.get("description"),
-    defaultSessionPriceCents: priceUah !== null ? Math.round(priceUah * 100) : null,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Некоректні дані" };
   }
 
-  const { name, slug, description, defaultSessionPriceCents } = parsed.data;
+  const { name, slug, description } = parsed.data;
 
   try {
     await prisma.psychologist.update({
@@ -49,7 +40,6 @@ export async function updateProfile(
         name,
         slug,
         description: description || null,
-        defaultSessionPriceCents,
       },
     });
   } catch (error) {

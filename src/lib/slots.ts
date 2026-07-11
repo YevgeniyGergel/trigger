@@ -13,8 +13,11 @@ export type DateRange = {
 
 export type GenerateSlotsParams = {
   workingHours: WorkingHourRule[];
-  sessionDurationMinutes: number;
-  breakDurationMinutes: number;
+  // Full calendar footprint of one slot (session time + break) — both the
+  // grid step and the length of each generated slot. The break lives inside
+  // this span rather than as separate dead space between slots, so grids of
+  // different slot lengths stay aligned on round wall-clock times.
+  slotMinutes: number;
   blockedRanges: DateRange[];
   bookedRanges: DateRange[];
   fromDate: Date;
@@ -41,18 +44,9 @@ function rangesOverlap(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): bool
  * own local time zone (see timezone.ts for why).
  */
 export function generateAvailableSlots(params: GenerateSlotsParams): DateRange[] {
-  const {
-    workingHours,
-    sessionDurationMinutes,
-    breakDurationMinutes,
-    blockedRanges,
-    bookedRanges,
-    fromDate,
-    toDate,
-  } = params;
+  const { workingHours, slotMinutes, blockedRanges, bookedRanges, fromDate, toDate } = params;
 
-  const slotSpanMinutes = sessionDurationMinutes + breakDurationMinutes;
-  if (sessionDurationMinutes <= 0 || slotSpanMinutes <= 0) {
+  if (slotMinutes <= 0) {
     return [];
   }
 
@@ -72,8 +66,8 @@ export function generateAvailableSlots(params: GenerateSlotsParams): DateRange[]
 
       for (
         let slotStartMinutes = dayStartMinutes;
-        slotStartMinutes + sessionDurationMinutes <= dayEndMinutes;
-        slotStartMinutes += slotSpanMinutes
+        slotStartMinutes + slotMinutes <= dayEndMinutes;
+        slotStartMinutes += slotMinutes
       ) {
         const slotStart = zonedTimeToUtc({
           year,
@@ -82,7 +76,7 @@ export function generateAvailableSlots(params: GenerateSlotsParams): DateRange[]
           hour: Math.floor(slotStartMinutes / 60),
           minute: slotStartMinutes % 60,
         });
-        const slotEndMinutes = slotStartMinutes + sessionDurationMinutes;
+        const slotEndMinutes = slotStartMinutes + slotMinutes;
         const slotEnd = zonedTimeToUtc({
           year,
           month,

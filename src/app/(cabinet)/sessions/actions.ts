@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireCurrentPsychologist } from "@/lib/current-psychologist";
 import { checkSlotConflict, type SlotConflictReason } from "@/lib/slot-conflict";
 import { zonedTimeToUtc } from "@/lib/timezone";
+import { manualSessionSchema } from "@/lib/validation/manual-session";
 import {
   notifyClient,
   sessionCancelledForClient,
@@ -15,6 +17,113 @@ import {
 export type SessionActionResult = {
   error?: string;
 };
+
+const SLOT_CONFLICT_MESSAGES_MANUAL: Record<SlotConflictReason, string> = {
+  outside_working_hours: "Обраний час поза робочими годинами",
+  blocked: "Цей час заблоковано у розкладі",
+  session_overlap: "У цей час вже є інша сесія",
+};
+
+export type ManualSessionFormState = {
+  error?: string;
+};
+
+export async function createManualSession(
+  _prevState: ManualSessionFormState,
+  formData: FormData
+): Promise<ManualSessionFormState> {
+  const psychologist = await requireCurrentPsychologist();
+
+  const parsed = manualSessionSchema.safeParse({
+    clientId: formData.get("clientId"),
+    serviceTypeId: formData.get("serviceTypeId"),
+    startAt: formData.get("startAt"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Некоректні дані" };
+  }
+
+  // <input type="datetime-local"> has no timezone offset — it's the
+  // psychologist's own Kyiv wall-clock time, parsed explicitly rather than
+  // via `new Date(raw)` (see rescheduleSession above for the same issue).
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(parsed.data.startAt);
+  if (!match) {
+    return { error: "Некоректна дата/час" };
+  }
+  const [, year, month, day, hour, minute] = match;
+  const startAt = zonedTimeToUtc({
+    year: Number(year),
+    month: Number(month),
+    day: Number(day),
+    hour: Number(hour),
+    minute: Number(minute),
+  });
+
+  const [client, service] = await Promise.all([
+    prisma.client.findFirst({
+      where: { id: parsed.data.clientId, psychologistId: psychologist.id },
+    }),
+    prisma.serviceType.findFirst({
+      where: { id: parsed.data.serviceTypeId, psychologistId: psychologist.id, active: true },
+    }),
+  ]);
+  if (!client) {
+    return { error: "Клієнта не знайдено" };
+  }
+  if (!service) {
+    return { error: "Обрана послуга недоступна" };
+  }
+
+  const endAt = new Date(startAt.getTime() + service.slotMinutes * 60_000);
+
+  let sessionId: string;
+  try {
+    sessionId = await prisma.$transaction(
+      async (tx) => {
+        const conflict = await checkSlotConflict(tx, {
+          psychologistId: psychologist.id,
+          startAt,
+          endAt,
+        });
+        if (conflict) {
+          throw new SlotConflictErrorManual(conflict);
+        }
+
+        const created = await tx.session.create({
+          data: {
+            psychologistId: psychologist.id,
+            clientId: client.id,
+            serviceTypeId: service.id,
+            startAt,
+            endAt,
+            status: "CONFIRMED",
+            priceCents: service.priceCents,
+          },
+        });
+        return created.id;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    );
+  } catch (error) {
+    if (error instanceof SlotConflictErrorManual) {
+      return { error: SLOT_CONFLICT_MESSAGES_MANUAL[error.reason] };
+    }
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+      return { error: "У цей час щойно з'явилась інша сесія. Спробуйте ще раз." };
+    }
+    throw error;
+  }
+
+  revalidatePath("/sessions");
+  revalidatePath(`/clients/${client.id}`);
+  redirect(`/sessions/${sessionId}`);
+}
+
+class SlotConflictErrorManual extends Error {
+  constructor(readonly reason: SlotConflictReason) {
+    super(reason);
+  }
+}
 
 export async function confirmSession(sessionId: string): Promise<SessionActionResult> {
   const psychologist = await requireCurrentPsychologist();

@@ -69,9 +69,6 @@ model Psychologist {
   name                 String
   slug                 String   @unique
   description          String?
-  defaultSessionPriceCents Int?
-  sessionDurationMinutes  Int    @default(50)
-  breakDurationMinutes    Int    @default(10)
   reminderLeadHours       Int    @default(24)
 
   // LiqPay merchant credentials (per-psychologist), privateKey encrypted at application level
@@ -98,8 +95,33 @@ model Psychologist {
   blockedRanges  BlockedRange[]
   sessions       Session[]
   notifications  Notification[]
+  serviceTypes   ServiceType[]
 
   @@map("psychologists")
+}
+
+model ServiceType {
+  id             String @id @default(cuid())
+  psychologistId String
+  psychologist   Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+
+  name         String
+  // Full calendar footprint (session time + break); the grid step used by
+  // generateAvailableSlots(). Client-facing "session length" = slotMinutes - breakMinutes.
+  slotMinutes  Int
+  breakMinutes Int @default(0)
+  priceCents   Int?
+  isDefault    Boolean @default(false)
+  active       Boolean @default(true)
+  sortOrder    Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions Session[]
+
+  @@index([psychologistId])
+  @@map("service_types")
 }
 
 model Client {
@@ -162,6 +184,8 @@ model Session {
   psychologist   Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
   clientId       String
   client         Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  serviceTypeId  String?
+  serviceType    ServiceType? @relation(fields: [serviceTypeId], references: [id], onDelete: SetNull)
 
   startAt DateTime
   endAt   DateTime

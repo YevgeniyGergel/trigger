@@ -6,6 +6,7 @@ export const bookingSchema = z
     phone: z.string().trim().max(30).optional().or(z.literal("")),
     email: z.string().trim().toLowerCase().email("Некоректний email").optional().or(z.literal("")),
     startAt: z.string().min(1, "Оберіть час"),
+    serviceTypeId: z.string().min(1, "Оберіть послугу"),
   })
   .refine((data) => data.phone || data.email, {
     message: "Вкажіть телефон або email",

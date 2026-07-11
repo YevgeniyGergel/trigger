@@ -3,13 +3,15 @@ import { requireCurrentPsychologist } from "@/lib/current-psychologist";
 import { WorkingHoursForm } from "./working-hours-form";
 import { BlockedRangeForm } from "./blocked-range-form";
 import { BlockedRangeList } from "./blocked-range-list";
+import { ServiceForm } from "./service-form";
+import { ServiceList } from "./service-list";
 import { PageHeader, SectionTitle } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 
 export default async function SchedulePage() {
   const psychologist = await requireCurrentPsychologist();
 
-  const [workingHours, blockedRanges] = await Promise.all([
+  const [workingHours, blockedRanges, services] = await Promise.all([
     prisma.workingHour.findMany({
       where: { psychologistId: psychologist.id },
       orderBy: { weekday: "asc" },
@@ -17,6 +19,10 @@ export default async function SchedulePage() {
     prisma.blockedRange.findMany({
       where: { psychologistId: psychologist.id, endAt: { gte: new Date() } },
       orderBy: { startAt: "asc" },
+    }),
+    prisma.serviceType.findMany({
+      where: { psychologistId: psychologist.id },
+      orderBy: { sortOrder: "asc" },
     }),
   ]);
 
@@ -27,6 +33,16 @@ export default async function SchedulePage() {
         title="Розклад"
         description="Робочі години визначають, коли клієнти бачать вільні слоти для запису."
       />
+
+      <section className="mt-8">
+        <SectionTitle>Послуги</SectionTitle>
+        <Card className="mt-4">
+          <CardBody>
+            <ServiceForm />
+          </CardBody>
+        </Card>
+        <ServiceList services={services} />
+      </section>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-2">
         <section>

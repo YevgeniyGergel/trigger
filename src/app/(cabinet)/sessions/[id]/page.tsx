@@ -63,6 +63,12 @@ export default async function SessionDetailPage({
                 {formatKyiv(session.startAt, { dateStyle: "medium", timeStyle: "short" })}
               </span>
             </div>
+            {session.serviceType ? (
+              <div className="flex items-center justify-between">
+                <span className="text-ink-muted">Послуга</span>
+                <span className="font-medium text-ink">{session.serviceType.name}</span>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between">
               <span className="text-ink-muted">Статус</span>
               <Badge tone={status?.tone ?? "neutral"}>{status?.label ?? session.status}</Badge>

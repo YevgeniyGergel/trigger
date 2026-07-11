@@ -13,7 +13,6 @@ type Props = {
     name: string;
     slug: string;
     description: string;
-    defaultSessionPriceUah: string;
   };
 };
 
@@ -51,19 +50,6 @@ export function ProfileForm({ defaultValues }: Props) {
           name="description"
           rows={4}
           defaultValue={defaultValues.description}
-        />
-      </div>
-      <div>
-        <Label htmlFor="defaultSessionPrice">
-          Стандартна вартість сесії, грн
-        </Label>
-        <Input
-          id="defaultSessionPrice"
-          name="defaultSessionPrice"
-          type="number"
-          min={0}
-          step="1"
-          defaultValue={defaultValues.defaultSessionPriceUah}
         />
       </div>
       {state.error ? <Alert tone="danger">{state.error}</Alert> : null}

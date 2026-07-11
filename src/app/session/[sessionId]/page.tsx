@@ -34,7 +34,7 @@ export default async function SessionStatusPage({
 
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
-    include: { psychologist: true },
+    include: { psychologist: true, serviceType: true },
   });
   if (!session) {
     notFound();
@@ -57,6 +57,7 @@ export default async function SessionStatusPage({
             </h1>
             <p className="mt-1.5 text-sm text-ink-muted">
               {formatKyiv(session.startAt, { dateStyle: "medium", timeStyle: "short" })}
+              {session.serviceType ? ` · ${session.serviceType.name}` : ""}
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-2">

@@ -97,6 +97,22 @@ describe("checkSlotConflict", () => {
     );
   });
 
+  it("returns session_overlap for a 120-minute booking overlapping an existing 60-minute session from a different service", async () => {
+    // A 60-min session already booked 10:00-11:00; a 120-min service booking
+    // 09:00-11:00 overlaps it even though the two services have different
+    // slot lengths — checkSlotConflict is range-based, not service-aware.
+    const tx = fakeTx({
+      workingHours: [{ startTime: "09:00", endTime: "17:00" }],
+      sessionConflict: { id: "s1" },
+    });
+    const result = await checkSlotConflict(tx, {
+      psychologistId: "p1",
+      startAt: new Date("2026-07-13T09:00:00"),
+      endAt: new Date("2026-07-13T11:00:00"),
+    });
+    expect(result).toBe("session_overlap");
+  });
+
   it("excludes the given session id from the overlap check (reschedule flow)", async () => {
     const tx = fakeTx({ workingHours: [{ startTime: "09:00", endTime: "17:00" }] });
     await checkSlotConflict(tx, {
