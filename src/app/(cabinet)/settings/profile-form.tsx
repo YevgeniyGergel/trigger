@@ -41,7 +41,7 @@ export function ProfileForm({ defaultValues }: Props) {
           defaultValue={defaultValues.slug}
           pattern="[a-z0-9-]+"
         />
-        <Hint>trigger.example/{defaultValues.slug}</Hint>
+        <Hint>trigger-space.com/{defaultValues.slug}</Hint>
       </div>
       <div>
         <Label htmlFor="description">Опис</Label>
