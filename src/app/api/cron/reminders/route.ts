@@ -30,7 +30,7 @@ export async function GET(request: Request) {
       await notifyClient(
         session.client,
         "SESSION_REMINDER",
-        sessionReminderForClient(session.startAt),
+        sessionReminderForClient(session.startAt, session.id),
         session.id
       );
       sent += 1;

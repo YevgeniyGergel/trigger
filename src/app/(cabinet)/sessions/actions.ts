@@ -6,6 +6,11 @@ import { prisma } from "@/lib/prisma";
 import { requireCurrentPsychologist } from "@/lib/current-psychologist";
 import { checkSlotConflict, type SlotConflictReason } from "@/lib/slot-conflict";
 import { zonedTimeToUtc } from "@/lib/timezone";
+import {
+  notifyClient,
+  sessionCancelledForClient,
+  sessionRescheduledForClient,
+} from "@/lib/notifications";
 
 export type SessionActionResult = {
   error?: string;
@@ -47,6 +52,24 @@ export async function cancelSession(sessionId: string): Promise<SessionActionRes
   if (result.count === 0) {
     return { error: "Сесію вже змінено. Оновіть сторінку." };
   }
+
+  const cancelled = await prisma.session.findUnique({
+    where: { id: sessionId },
+    include: { client: true },
+  });
+  if (cancelled) {
+    try {
+      await notifyClient(
+        cancelled.client,
+        "CANCELLATION",
+        sessionCancelledForClient(cancelled.startAt, cancelled.id),
+        cancelled.id
+      );
+    } catch (error) {
+      console.error("[sessions] cancellation notification failed:", error);
+    }
+  }
+
   return {};
 }
 
@@ -93,8 +116,9 @@ export async function rescheduleSession(
     minute: Number(minute),
   });
 
+  let rescheduledClient;
   try {
-    await prisma.$transaction(
+    rescheduledClient = await prisma.$transaction(
       async (tx) => {
         // Re-read the session inside the transaction and require it to
         // still be PENDING/CONFIRMED — closes the gap where the session
@@ -106,6 +130,7 @@ export async function rescheduleSession(
             psychologistId: psychologist.id,
             status: { in: ["PENDING", "CONFIRMED"] },
           },
+          include: { client: true },
         });
         if (!session) {
           throw new SessionNotReschedulableError();
@@ -131,6 +156,8 @@ export async function rescheduleSession(
         if (updated.count === 0) {
           throw new SessionNotReschedulableError();
         }
+
+        return session.client;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
     );
@@ -147,6 +174,17 @@ export async function rescheduleSession(
       return { error: "У цей час щойно з'явилась інша сесія. Спробуйте ще раз." };
     }
     throw error;
+  }
+
+  try {
+    await notifyClient(
+      rescheduledClient,
+      "RESCHEDULED",
+      sessionRescheduledForClient(startAt, sessionId),
+      sessionId
+    );
+  } catch (error) {
+    console.error("[sessions] reschedule notification failed:", error);
   }
 
   revalidatePath("/sessions");

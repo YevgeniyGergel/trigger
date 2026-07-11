@@ -59,6 +59,7 @@ enum NotificationType {
   SESSION_REMINDER
   PAYMENT_STATUS
   CANCELLATION
+  RESCHEDULED
 }
 
 model Psychologist {

@@ -136,7 +136,7 @@ export async function createBooking(
     await notifyClient(
       booking.client,
       "BOOKING_CONFIRMATION",
-      bookingConfirmationForClient(startAt),
+      bookingConfirmationForClient(startAt, booking.session.id),
       booking.session.id
     );
   } catch (error) {

@@ -135,21 +135,47 @@ export function bookingConfirmationForPsychologist(clientName: string, startAt: 
   };
 }
 
-export function bookingConfirmationForClient(startAt: Date): Message {
+function sessionStatusUrl(sessionId: string): string {
+  return `${process.env.APP_BASE_URL ?? ""}/session/${sessionId}`;
+}
+
+export function bookingConfirmationForClient(startAt: Date, sessionId: string): Message {
   const when = formatKyiv(startAt, { dateStyle: "medium", timeStyle: "short" });
+  const statusUrl = sessionStatusUrl(sessionId);
   return {
     subject: "Підтвердження запису",
-    emailHtml: `<p>Вашу сесію заплановано на ${when}. Психолог підтвердить запис найближчим часом.</p>`,
-    telegramText: `Вашу сесію заплановано на ${when}.`,
+    emailHtml: `<p>Вашу сесію заплановано на ${when}. Психолог підтвердить запис найближчим часом. <a href="${statusUrl}">Перевірити статус запису</a>.</p>`,
+    telegramText: `Вашу сесію заплановано на ${when}. Статус запису: ${statusUrl}`,
   };
 }
 
-export function sessionReminderForClient(startAt: Date): Message {
+export function sessionReminderForClient(startAt: Date, sessionId: string): Message {
   const when = formatKyiv(startAt, { dateStyle: "medium", timeStyle: "short" });
+  const statusUrl = sessionStatusUrl(sessionId);
   return {
     subject: "Нагадування про сесію",
-    emailHtml: `<p>Нагадуємо про вашу сесію ${when}.</p>`,
-    telegramText: `Нагадуємо про вашу сесію ${when}.`,
+    emailHtml: `<p>Нагадуємо про вашу сесію ${when}. <a href="${statusUrl}">Переглянути статус запису</a>.</p>`,
+    telegramText: `Нагадуємо про вашу сесію ${when}. Статус запису: ${statusUrl}`,
+  };
+}
+
+export function sessionCancelledForClient(startAt: Date, sessionId: string): Message {
+  const when = formatKyiv(startAt, { dateStyle: "medium", timeStyle: "short" });
+  const statusUrl = sessionStatusUrl(sessionId);
+  return {
+    subject: "Сесію скасовано",
+    emailHtml: `<p>Вашу сесію ${when} скасовано психологом. <a href="${statusUrl}">Переглянути статус запису</a>.</p>`,
+    telegramText: `Вашу сесію ${when} скасовано психологом. Статус запису: ${statusUrl}`,
+  };
+}
+
+export function sessionRescheduledForClient(newStartAt: Date, sessionId: string): Message {
+  const when = formatKyiv(newStartAt, { dateStyle: "medium", timeStyle: "short" });
+  const statusUrl = sessionStatusUrl(sessionId);
+  return {
+    subject: "Сесію перенесено",
+    emailHtml: `<p>Вашу сесію перенесено на ${when}. <a href="${statusUrl}">Переглянути статус запису</a>.</p>`,
+    telegramText: `Вашу сесію перенесено на ${when}. Статус запису: ${statusUrl}`,
   };
 }
 

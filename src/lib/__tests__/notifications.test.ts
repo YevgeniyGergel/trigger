@@ -18,6 +18,8 @@ const {
   bookingConfirmationForClient,
   bookingConfirmationForPsychologist,
   sessionReminderForClient,
+  sessionCancelledForClient,
+  sessionRescheduledForClient,
   paymentStatusForClient,
 } = await import("../notifications");
 
@@ -155,14 +157,31 @@ describe("message builders", () => {
     expect(msg.emailHtml).toContain("Олена");
   });
 
-  it("bookingConfirmationForClient mentions the session is scheduled", () => {
-    const msg = bookingConfirmationForClient(startAt);
+  it("bookingConfirmationForClient mentions the session is scheduled and links to the status page", () => {
+    const msg = bookingConfirmationForClient(startAt, "sess_1");
     expect(msg.subject).toBe("Підтвердження запису");
+    expect(msg.emailHtml).toContain("/session/sess_1");
+    expect(msg.telegramText).toContain("/session/sess_1");
   });
 
-  it("sessionReminderForClient produces a reminder message", () => {
-    const msg = sessionReminderForClient(startAt);
+  it("sessionReminderForClient produces a reminder message with a status page link", () => {
+    const msg = sessionReminderForClient(startAt, "sess_1");
     expect(msg.subject).toBe("Нагадування про сесію");
+    expect(msg.emailHtml).toContain("/session/sess_1");
+  });
+
+  it("sessionCancelledForClient includes the status page link", () => {
+    const msg = sessionCancelledForClient(startAt, "sess_1");
+    expect(msg.subject).toBe("Сесію скасовано");
+    expect(msg.emailHtml).toContain("/session/sess_1");
+    expect(msg.telegramText).toContain("/session/sess_1");
+  });
+
+  it("sessionRescheduledForClient includes the new time and the status page link", () => {
+    const newStartAt = new Date("2026-07-14T11:00:00");
+    const msg = sessionRescheduledForClient(newStartAt, "sess_1");
+    expect(msg.subject).toBe("Сесію перенесено");
+    expect(msg.emailHtml).toContain("/session/sess_1");
   });
 
   it("paymentStatusForClient includes a retry link only on failure", () => {
