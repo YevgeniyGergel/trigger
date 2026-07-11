@@ -36,7 +36,11 @@ export const OAUTH_PROVIDERS: Record<IntegrationProvider, OAuthProviderConfig> =
     authUrl: "https://zoom.us/oauth/authorize",
     tokenUrl: "https://zoom.us/oauth/token",
     revokeUrl: "https://zoom.us/oauth/revoke",
-    scope: "meeting:write meeting:read user:read",
+    // Granular scopes (Zoom's current model) — create/update/delete a
+    // meeting are three separate scopes (zoom.ts calls all three: POST,
+    // PATCH, DELETE on /meetings); user:read:user reads the connected
+    // account's email.
+    scope: "meeting:write:meeting meeting:update:meeting meeting:delete:meeting user:read:user",
     clientId: () => requireEnv("ZOOM_CLIENT_ID"),
     clientSecret: () => requireEnv("ZOOM_CLIENT_SECRET"),
   },
