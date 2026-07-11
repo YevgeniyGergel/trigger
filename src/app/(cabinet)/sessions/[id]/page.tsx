@@ -77,6 +77,7 @@ export default async function SessionDetailPage({
               <NoteRecorder sessionId={session.id} />
             ) : (
               <NoteEditor
+                key={`${note.status}-${note.soapStatus}`}
                 sessionId={session.id}
                 audioSignedUrl={audioSignedUrl}
                 noteStatus={note.status}

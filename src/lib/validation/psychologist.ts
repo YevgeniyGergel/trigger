@@ -27,3 +27,9 @@ export const profileUpdateSchema = z.object({
 });
 
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
+
+export const NOTE_LANGUAGES = ["uk", "ru", "en"] as const;
+
+export const noteLanguageSchema = z.object({
+  noteLanguage: z.enum(NOTE_LANGUAGES, { message: "Оберіть мову зі списку" }),
+});

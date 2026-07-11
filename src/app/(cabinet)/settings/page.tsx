@@ -3,6 +3,7 @@ import { requireCurrentPsychologist } from "@/lib/current-psychologist";
 import { ProfileForm } from "./profile-form";
 import { LiqpayForm } from "./liqpay-form";
 import { NotificationsForm } from "./notifications-form";
+import { NoteLanguageForm } from "./note-language-form";
 import { PageHeader, SectionTitle } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -79,6 +80,13 @@ export default async function SettingsPage() {
             publicKey={psychologist.liqpayPublicKey ?? ""}
             mode={psychologist.liqpayMode}
           />
+        </SettingsSection>
+
+        <SettingsSection
+          title="Голосові нотатки сесій"
+          description="Мова, якою розпізнається аудіозапис сесії при створенні нотатки."
+        >
+          <NoteLanguageForm noteLanguage={psychologist.noteLanguage} />
         </SettingsSection>
 
         <SettingsSection

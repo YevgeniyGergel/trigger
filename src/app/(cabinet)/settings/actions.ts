@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { profileUpdateSchema } from "@/lib/validation/psychologist";
+import { profileUpdateSchema, noteLanguageSchema } from "@/lib/validation/psychologist";
 import { liqpayCredentialsSchema } from "@/lib/validation/liqpay";
 import { requireCurrentPsychologist } from "@/lib/current-psychologist";
 import { isUniqueConstraintError } from "@/lib/prisma-errors";
@@ -81,6 +81,35 @@ export async function updateNotificationPreferences(
       emailNotificationsEnabled: formData.get("emailNotificationsEnabled") === "on",
       telegramNotificationsEnabled: formData.get("telegramNotificationsEnabled") === "on",
     },
+  });
+
+  revalidatePath("/settings");
+
+  return { success: true };
+}
+
+export type NoteLanguageState = {
+  error?: string;
+  success?: boolean;
+};
+
+export async function updateNoteLanguage(
+  _prevState: NoteLanguageState,
+  formData: FormData
+): Promise<NoteLanguageState> {
+  const psychologist = await requireCurrentPsychologist();
+
+  const parsed = noteLanguageSchema.safeParse({
+    noteLanguage: formData.get("noteLanguage"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Некоректні дані" };
+  }
+
+  await prisma.psychologist.update({
+    where: { id: psychologist.id },
+    data: { noteLanguage: parsed.data.noteLanguage },
   });
 
   revalidatePath("/settings");

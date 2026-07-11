@@ -79,6 +79,11 @@ model Psychologist {
   liqpayPrivateKeyEnc  String?
   liqpayMode           PaymentMode @default(TEST)
 
+  // ISO-639-1 code pinned for Whisper transcription (see design.md) — auto
+  // language detection frequently misreads short/quiet Ukrainian clips as
+  // Russian, so this is explicit rather than detected per note.
+  noteLanguage String @default("uk")
+
   // Notification preferences
   emailNotificationsEnabled    Boolean @default(true)
   telegramNotificationsEnabled Boolean @default(false)

@@ -20,9 +20,14 @@ async function getOwnedNoteBySessionId(psychologistId: string, sessionId: string
   return session.note;
 }
 
-async function runTranscriptionAndSoap(noteId: string, audio: Buffer, contentType: string) {
+async function runTranscriptionAndSoap(
+  noteId: string,
+  audio: Buffer,
+  contentType: string,
+  language: string
+) {
   try {
-    const transcriptText = await transcribeAudio(audio, `${noteId}.webm`, contentType);
+    const transcriptText = await transcribeAudio(audio, `${noteId}.webm`, contentType, language);
     await prisma.sessionNote.update({
       where: { id: noteId },
       data: { transcriptTextEnc: encryptNoteText(transcriptText), status: "READY" },
@@ -85,7 +90,7 @@ export async function uploadSessionAudio(
     },
   });
 
-  await runTranscriptionAndSoap(note.id, buffer, contentType);
+  await runTranscriptionAndSoap(note.id, buffer, contentType, psychologist.noteLanguage);
 
   revalidatePath(`/sessions/${sessionId}`);
   return {};
@@ -106,7 +111,7 @@ export async function retryTranscription(sessionId: string): Promise<NoteActionS
   const buffer = Buffer.from(await response.arrayBuffer());
   const contentType = response.headers.get("content-type") ?? "audio/webm";
 
-  await runTranscriptionAndSoap(note.id, buffer, contentType);
+  await runTranscriptionAndSoap(note.id, buffer, contentType, psychologist.noteLanguage);
 
   revalidatePath(`/sessions/${sessionId}`);
   return {};
