@@ -6,8 +6,13 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Neon's pooled endpoint (PgBouncer, transaction mode) doesn't support the
+  // session-level advisory lock `prisma migrate deploy` takes — that's what
+  // was timing out with P1002. Migrations run against this direct
+  // (non-pooled) connection instead; app queries keep using the pooled one.
+  directUrl = env("DIRECT_URL")
 }
 
 enum SessionStatus {
