@@ -1,30 +1,34 @@
+import { getZonedParts, zonedTimeToUtc, addDays as addKyivDays } from "./timezone";
+
+/** The Kyiv-local Monday 00:00 instant of the week containing `date`. */
 export function startOfWeek(date: Date): Date {
-  const result = new Date(date);
-  result.setHours(0, 0, 0, 0);
-  const day = result.getDay();
-  const diff = day === 0 ? -6 : 1 - day; // week starts Monday
-  result.setDate(result.getDate() + diff);
-  return result;
+  const { year, month, day, weekday } = getZonedParts(date);
+  const diff = weekday === 0 ? -6 : 1 - weekday; // week starts Monday
+  const monday = new Date(Date.UTC(year, month - 1, day + diff));
+  return zonedTimeToUtc({
+    year: monday.getUTCFullYear(),
+    month: monday.getUTCMonth() + 1,
+    day: monday.getUTCDate(),
+  });
 }
 
 export function addDays(date: Date, days: number): Date {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
+  return addKyivDays(date, days);
 }
 
 export function toDateParam(date: Date): string {
-  // Use local date components, not toISOString() (which converts to UTC and
-  // would roll back to the previous day for any positive UTC offset, e.g.
-  // Ukraine's UTC+2/+3 — exactly the timezones this app targets).
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  // Kyiv calendar date, not the process-local one — a UTC-default host
+  // (e.g. Vercel, which reserves the TZ env var and won't let it be set)
+  // would otherwise roll this back to the previous day for Kyiv's UTC+2/+3.
+  const { year, month, day } = getZonedParts(date);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 export function parseDateParam(value: string | undefined): Date {
   if (!value) return new Date();
-  const parsed = new Date(`${value}T00:00:00`);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return new Date();
+  const [, year, month, day] = match;
+  const parsed = zonedTimeToUtc({ year: Number(year), month: Number(month), day: Number(day) });
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
 }

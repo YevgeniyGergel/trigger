@@ -1,3 +1,5 @@
+import { getZonedParts, zonedTimeToUtc, startOfDay, addDays } from "./timezone";
+
 export type WorkingHourRule = {
   weekday: number; // 0 = Sunday .. 6 = Saturday
   startTime: string; // "HH:mm"
@@ -33,9 +35,10 @@ function rangesOverlap(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): bool
  * derived from the psychologist's recurring weekly working hours, minus any
  * slot that overlaps a blocked range or an already-booked session.
  *
- * Simplification: working-hour times are interpreted in the server's local
- * time zone (no per-psychologist time zone support yet) — acceptable for a
- * single-country MVP, revisit if the product expands beyond Ukraine.
+ * Working-hour times are interpreted as Europe/Kyiv wall-clock time (no
+ * per-psychologist time zone support yet — single-country MVP), converted
+ * explicitly via lib/timezone.ts rather than relying on the host process's
+ * own local time zone (see timezone.ts for why).
  */
 export function generateAvailableSlots(params: GenerateSlotsParams): DateRange[] {
   const {
@@ -56,13 +59,11 @@ export function generateAvailableSlots(params: GenerateSlotsParams): DateRange[]
   const slots: DateRange[] = [];
   const unavailable = [...blockedRanges, ...bookedRanges];
 
-  const cursorDay = new Date(fromDate);
-  cursorDay.setHours(0, 0, 0, 0);
-  const endDay = new Date(toDate);
-  endDay.setHours(0, 0, 0, 0);
+  let cursorDay = startOfDay(fromDate);
+  const endDay = startOfDay(toDate);
 
   while (cursorDay <= endDay) {
-    const weekday = cursorDay.getDay();
+    const { year, month, day, weekday } = getZonedParts(cursorDay);
     const rulesForDay = workingHours.filter((rule) => rule.weekday === weekday);
 
     for (const rule of rulesForDay) {
@@ -74,10 +75,21 @@ export function generateAvailableSlots(params: GenerateSlotsParams): DateRange[]
         slotStartMinutes + sessionDurationMinutes <= dayEndMinutes;
         slotStartMinutes += slotSpanMinutes
       ) {
-        const slotStart = new Date(cursorDay);
-        slotStart.setMinutes(slotStartMinutes);
-        const slotEnd = new Date(slotStart);
-        slotEnd.setMinutes(slotStart.getMinutes() + sessionDurationMinutes);
+        const slotStart = zonedTimeToUtc({
+          year,
+          month,
+          day,
+          hour: Math.floor(slotStartMinutes / 60),
+          minute: slotStartMinutes % 60,
+        });
+        const slotEndMinutes = slotStartMinutes + sessionDurationMinutes;
+        const slotEnd = zonedTimeToUtc({
+          year,
+          month,
+          day,
+          hour: Math.floor(slotEndMinutes / 60),
+          minute: slotEndMinutes % 60,
+        });
 
         if (slotStart < fromDate || slotEnd > toDate) {
           continue;
@@ -93,7 +105,7 @@ export function generateAvailableSlots(params: GenerateSlotsParams): DateRange[]
       }
     }
 
-    cursorDay.setDate(cursorDay.getDate() + 1);
+    cursorDay = addDays(cursorDay, 1);
   }
 
   return slots;

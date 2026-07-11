@@ -8,6 +8,7 @@ import { Card, CardBody } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/page-header";
+import { formatKyiv } from "@/lib/timezone";
 
 export default async function PayPage({
   params,
@@ -40,10 +41,7 @@ export default async function PayPage({
               {session.psychologist.name}
             </h1>
             <p className="mt-1.5 text-sm text-ink-muted">
-              {session.startAt.toLocaleString("uk-UA", {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })}
+              {formatKyiv(session.startAt, { dateStyle: "medium", timeStyle: "short" })}
             </p>
 
             {session.paymentStatus === "PAID" ? (

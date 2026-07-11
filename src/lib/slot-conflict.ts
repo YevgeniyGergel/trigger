@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { getZonedParts, zonedTimeToUtc } from "./timezone";
 
 type Queryable = PrismaClient | Prisma.TransactionClient;
 
@@ -9,14 +10,14 @@ function isWithinWorkingHours(
   startAt: Date,
   endAt: Date
 ): boolean {
+  const { year, month, day } = getZonedParts(startAt);
+
   return workingHours.some((rule) => {
     const [startHours, startMinutes] = rule.startTime.split(":").map(Number);
     const [endHours, endMinutes] = rule.endTime.split(":").map(Number);
 
-    const ruleStart = new Date(startAt);
-    ruleStart.setHours(startHours, startMinutes, 0, 0);
-    const ruleEnd = new Date(startAt);
-    ruleEnd.setHours(endHours, endMinutes, 0, 0);
+    const ruleStart = zonedTimeToUtc({ year, month, day, hour: startHours, minute: startMinutes });
+    const ruleEnd = zonedTimeToUtc({ year, month, day, hour: endHours, minute: endMinutes });
 
     return startAt >= ruleStart && endAt <= ruleEnd;
   });
@@ -42,7 +43,7 @@ export async function checkSlotConflict(
   const { psychologistId, startAt, endAt, excludeSessionId } = params;
 
   const workingHours = await tx.workingHour.findMany({
-    where: { psychologistId, weekday: startAt.getDay() },
+    where: { psychologistId, weekday: getZonedParts(startAt).weekday },
     select: { startTime: true, endTime: true },
   });
   if (!isWithinWorkingHours(workingHours, startAt, endAt)) {

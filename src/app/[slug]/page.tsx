@@ -22,8 +22,10 @@ export default async function PublicBookingPage({
   }
 
   const fromDate = new Date();
-  const toDate = new Date(fromDate);
-  toDate.setDate(toDate.getDate() + BOOKING_WINDOW_DAYS);
+  // Plain ms arithmetic (not setDate, which reads/writes local calendar
+  // fields) — this is just a rough upper bound on the booking window, not a
+  // Kyiv-calendar-exact boundary, so it doesn't need timezone conversion.
+  const toDate = new Date(fromDate.getTime() + BOOKING_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
   const [workingHours, blockedRanges, bookedSessions] = await Promise.all([
     prisma.workingHour.findMany({ where: { psychologistId: psychologist.id } }),

@@ -9,6 +9,7 @@ import { PageHeader, SectionTitle } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { formatKyiv } from "@/lib/timezone";
 
 const STATUS_BADGES: Record<
   string,
@@ -94,10 +95,7 @@ export default async function ClientDetailPage({
                     className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5 transition-colors hover:bg-sand-100/60"
                   >
                     <span className="text-sm text-ink">
-                      {session.startAt.toLocaleString("uk-UA", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
+                      {formatKyiv(session.startAt, { dateStyle: "medium", timeStyle: "short" })}
                     </span>
                     <span className="flex items-center gap-1.5">
                       <Badge tone={status?.tone ?? "neutral"}>

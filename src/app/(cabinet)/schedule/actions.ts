@@ -4,6 +4,24 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { workingHoursSchema, blockedRangeSchema } from "@/lib/validation/schedule";
 import { requireCurrentPsychologist } from "@/lib/current-psychologist";
+import { zonedTimeToUtc } from "@/lib/timezone";
+
+// <input type="datetime-local"> values ("YYYY-MM-DDTHH:mm") carry no
+// timezone offset — they're the psychologist's own Kyiv wall-clock time, so
+// parsing them via `new Date(raw)` would read them as the server's local
+// time (UTC on Vercel) rather than Kyiv, shifting blocked ranges by hours.
+function parseDatetimeLocal(value: string): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
+  if (!match) return new Date(NaN);
+  const [, year, month, day, hour, minute] = match;
+  return zonedTimeToUtc({
+    year: Number(year),
+    month: Number(month),
+    day: Number(day),
+    hour: Number(hour),
+    minute: Number(minute),
+  });
+}
 
 const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
 
@@ -71,8 +89,8 @@ export async function addBlockedRange(
     return { error: parsed.error.issues[0]?.message ?? "Некоректні дані" };
   }
 
-  const startAt = new Date(parsed.data.startAt);
-  const endAt = new Date(parsed.data.endAt);
+  const startAt = parseDatetimeLocal(parsed.data.startAt);
+  const endAt = parseDatetimeLocal(parsed.data.endAt);
 
   const confirmedForStart = formData.get("confirmedForStart");
   const confirmedForEnd = formData.get("confirmedForEnd");

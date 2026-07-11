@@ -2,6 +2,7 @@ import type { Client, NotificationType, Psychologist } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { sendTelegramMessage } from "@/lib/telegram";
+import { formatKyiv } from "@/lib/timezone";
 
 type Message = { subject: string; emailHtml: string; telegramText: string };
 
@@ -126,7 +127,7 @@ export async function notifyClient(
 }
 
 export function bookingConfirmationForPsychologist(clientName: string, startAt: Date): Message {
-  const when = startAt.toLocaleString("uk-UA", { dateStyle: "medium", timeStyle: "short" });
+  const when = formatKyiv(startAt, { dateStyle: "medium", timeStyle: "short" });
   return {
     subject: "Нове бронювання",
     emailHtml: `<p>Нове бронювання від ${clientName} на ${when}.</p>`,
@@ -135,7 +136,7 @@ export function bookingConfirmationForPsychologist(clientName: string, startAt: 
 }
 
 export function bookingConfirmationForClient(startAt: Date): Message {
-  const when = startAt.toLocaleString("uk-UA", { dateStyle: "medium", timeStyle: "short" });
+  const when = formatKyiv(startAt, { dateStyle: "medium", timeStyle: "short" });
   return {
     subject: "Підтвердження запису",
     emailHtml: `<p>Вашу сесію заплановано на ${when}. Психолог підтвердить запис найближчим часом.</p>`,
@@ -144,7 +145,7 @@ export function bookingConfirmationForClient(startAt: Date): Message {
 }
 
 export function sessionReminderForClient(startAt: Date): Message {
-  const when = startAt.toLocaleString("uk-UA", { dateStyle: "medium", timeStyle: "short" });
+  const when = formatKyiv(startAt, { dateStyle: "medium", timeStyle: "short" });
   return {
     subject: "Нагадування про сесію",
     emailHtml: `<p>Нагадуємо про вашу сесію ${when}.</p>`,

@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireCurrentPsychologist } from "@/lib/current-psychologist";
 import { checkSlotConflict, type SlotConflictReason } from "@/lib/slot-conflict";
+import { zonedTimeToUtc } from "@/lib/timezone";
 
 export type SessionActionResult = {
   error?: string;
@@ -73,11 +74,24 @@ export async function rescheduleSession(
 ): Promise<RescheduleFormState> {
   const psychologist = await requireCurrentPsychologist();
 
+  // The <input type="datetime-local"> value has no timezone offset — it's
+  // the psychologist's own wall-clock time (Kyiv), not UTC or the server's
+  // local time, so it must be parsed explicitly rather than via `new
+  // Date(raw)` (which would read it as the server's local time — UTC on
+  // Vercel, a multi-hour bug).
   const startAtRaw = String(formData.get("startAt") ?? "");
-  const startAt = new Date(startAtRaw);
-  if (Number.isNaN(startAt.getTime())) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(startAtRaw);
+  if (!match) {
     return { error: "Некоректна дата/час" };
   }
+  const [, year, month, day, hour, minute] = match;
+  const startAt = zonedTimeToUtc({
+    year: Number(year),
+    month: Number(month),
+    day: Number(day),
+    hour: Number(hour),
+    minute: Number(minute),
+  });
 
   try {
     await prisma.$transaction(

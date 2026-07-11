@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { decryptSecret } from "@/lib/crypto";
 import { buildLiqpayCheckout, type LiqpayCheckoutForm } from "@/lib/liqpay";
 import { getSessionAmountCents } from "@/lib/session-price";
+import { formatKyiv } from "@/lib/timezone";
 
 export type StartPaymentResult = { error: string } | LiqpayCheckoutForm;
 
@@ -57,7 +58,7 @@ export async function startPayment(sessionId: string): Promise<StartPaymentResul
     privateKey,
     amountUah: amountCents / 100,
     orderId: payment.id,
-    description: `Сесія з ${psychologist.name}, ${session.startAt.toLocaleDateString("uk-UA")}`,
+    description: `Сесія з ${psychologist.name}, ${formatKyiv(session.startAt, { dateStyle: "medium" })}`,
     resultUrl: `${baseUrl}/pay/${session.id}?status=done`,
     serverUrl: `${baseUrl}/api/liqpay/webhook`,
     sandbox: psychologist.liqpayMode === "TEST",

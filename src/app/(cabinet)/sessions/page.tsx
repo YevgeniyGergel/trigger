@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireCurrentPsychologist } from "@/lib/current-psychologist";
 import { startOfWeek, addDays, toDateParam, parseDateParam } from "@/lib/week";
+import { getZonedParts, formatKyiv } from "@/lib/timezone";
 import { SessionActions } from "./session-actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -42,11 +43,15 @@ export default async function SessionsPage({
   });
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const today = new Date();
-  const isToday = (day: Date) =>
-    day.getFullYear() === today.getFullYear() &&
-    day.getMonth() === today.getMonth() &&
-    day.getDate() === today.getDate();
+  const todayParts = getZonedParts(new Date());
+  const isToday = (day: Date) => {
+    const parts = getZonedParts(day);
+    return (
+      parts.year === todayParts.year &&
+      parts.month === todayParts.month &&
+      parts.day === todayParts.day
+    );
+  };
 
   return (
     <div>
@@ -63,8 +68,8 @@ export default async function SessionsPage({
               ←
             </Link>
             <span className="min-w-44 text-center text-sm font-medium text-ink">
-              {weekStart.toLocaleDateString("uk-UA")} —{" "}
-              {addDays(weekStart, 6).toLocaleDateString("uk-UA")}
+              {formatKyiv(weekStart, { year: "numeric", month: "2-digit", day: "2-digit" })} —{" "}
+              {formatKyiv(addDays(weekStart, 6), { year: "numeric", month: "2-digit", day: "2-digit" })}
             </span>
             <Link
               href={`/sessions?week=${nextWeek}`}
@@ -99,7 +104,8 @@ export default async function SessionsPage({
                   {DAY_LABELS[i]}
                 </span>
                 <span className="font-display text-sm text-ink">
-                  {day.getDate()}.{String(day.getMonth() + 1).padStart(2, "0")}
+                  {String(getZonedParts(day).day).padStart(2, "0")}.
+                  {String(getZonedParts(day).month).padStart(2, "0")}
                 </span>
               </div>
               <div className="p-3">
@@ -118,10 +124,7 @@ export default async function SessionsPage({
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-display text-sm font-medium text-ink">
-                              {s.startAt.toLocaleTimeString("uk-UA", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {formatKyiv(s.startAt, { hour: "2-digit", minute: "2-digit" })}
                             </span>
                             <Badge tone={status?.tone ?? "neutral"}>
                               {status?.label ?? s.status}

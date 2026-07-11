@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NoteRecorder } from "./note-recorder";
 import { NoteEditor } from "./note-editor";
+import { formatKyiv } from "@/lib/timezone";
 
 const STATUS_BADGES: Record<
   string,
@@ -59,7 +60,7 @@ export default async function SessionDetailPage({
             <div className="flex items-center justify-between">
               <span className="text-ink-muted">Дата й час</span>
               <span className="font-medium text-ink">
-                {session.startAt.toLocaleString("uk-UA", { dateStyle: "medium", timeStyle: "short" })}
+                {formatKyiv(session.startAt, { dateStyle: "medium", timeStyle: "short" })}
               </span>
             </div>
             <div className="flex items-center justify-between">
