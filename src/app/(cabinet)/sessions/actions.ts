@@ -11,6 +11,7 @@ import { manualSessionSchema } from "@/lib/validation/manual-session";
 import {
   notifyClient,
   sessionCancelledForClient,
+  sessionConfirmedForClient,
   sessionRescheduledForClient,
 } from "@/lib/notifications";
 import {
@@ -96,6 +97,7 @@ export async function createManualSession(
           psychologistId: psychologist.id,
           startAt,
           endAt,
+          skipWorkingHours: true,
         });
         if (conflict) {
           throw new SlotConflictErrorManual(conflict);
@@ -124,6 +126,17 @@ export async function createManualSession(
       return { error: "У цей час щойно з'явилась інша сесія. Спробуйте ще раз." };
     }
     throw error;
+  }
+
+  try {
+    await notifyClient(
+      client,
+      "BOOKING_CONFIRMATION",
+      sessionConfirmedForClient(startAt, sessionId, service.slotMinutes - service.breakMinutes),
+      sessionId
+    );
+  } catch (error) {
+    console.error("[sessions] manual booking notification failed:", error);
   }
 
   try {
@@ -167,8 +180,12 @@ export async function confirmSession(sessionId: string): Promise<SessionActionRe
   return {};
 }
 
-export async function cancelSession(sessionId: string): Promise<SessionActionResult> {
+export async function cancelSession(
+  sessionId: string,
+  comment?: string
+): Promise<SessionActionResult> {
   const psychologist = await requireCurrentPsychologist();
+  const trimmedComment = comment?.trim() || undefined;
 
   // Cancelling only flips status — generateAvailableSlots() already filters
   // bookedRanges to PENDING/CONFIRMED sessions, so a CANCELLED session's
@@ -197,7 +214,7 @@ export async function cancelSession(sessionId: string): Promise<SessionActionRes
       await notifyClient(
         cancelled.client,
         "CANCELLATION",
-        sessionCancelledForClient(cancelled.startAt, cancelled.id),
+        sessionCancelledForClient(cancelled.startAt, cancelled.id, trimmedComment),
         cancelled.id
       );
     } catch (error) {
@@ -256,6 +273,7 @@ export async function rescheduleSession(
     hour: Number(hour),
     minute: Number(minute),
   });
+  const comment = String(formData.get("comment") ?? "").trim() || undefined;
 
   // Re-check Google Calendar busy intervals uncached, outside the
   // transaction below (an external API call has no business holding a
@@ -336,7 +354,7 @@ export async function rescheduleSession(
     await notifyClient(
       rescheduledClient,
       "RESCHEDULED",
-      sessionRescheduledForClient(startAt, sessionId),
+      sessionRescheduledForClient(startAt, sessionId, comment),
       sessionId
     );
   } catch (error) {

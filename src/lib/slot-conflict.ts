@@ -38,16 +38,19 @@ export async function checkSlotConflict(
     startAt: Date;
     endAt: Date;
     excludeSessionId?: string;
+    skipWorkingHours?: boolean;
   }
 ): Promise<SlotConflictReason | null> {
-  const { psychologistId, startAt, endAt, excludeSessionId } = params;
+  const { psychologistId, startAt, endAt, excludeSessionId, skipWorkingHours } = params;
 
-  const workingHours = await tx.workingHour.findMany({
-    where: { psychologistId, weekday: getZonedParts(startAt).weekday },
-    select: { startTime: true, endTime: true },
-  });
-  if (!isWithinWorkingHours(workingHours, startAt, endAt)) {
-    return "outside_working_hours";
+  if (!skipWorkingHours) {
+    const workingHours = await tx.workingHour.findMany({
+      where: { psychologistId, weekday: getZonedParts(startAt).weekday },
+      select: { startTime: true, endTime: true },
+    });
+    if (!isWithinWorkingHours(workingHours, startAt, endAt)) {
+      return "outside_working_hours";
+    }
   }
 
   const blocked = await tx.blockedRange.findFirst({

@@ -7,7 +7,7 @@ export default function CabinetLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-20 border-b border-line bg-sand-50/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-8 gap-y-2 px-6 py-3">
+        <div className="mx-auto flex max-w-[100rem] flex-wrap items-center justify-between gap-x-8 gap-y-2 px-6 py-3">
           <Logo />
           <div className="order-last w-full sm:order-none sm:w-auto sm:flex-1">
             <CabinetNav />
@@ -27,7 +27,7 @@ export default function CabinetLayout({ children }: { children: ReactNode }) {
           </form>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
+      <main className="mx-auto w-full max-w-[100rem] flex-1 px-6 py-10">
         {children}
       </main>
       <footer className="border-t border-line py-6">

@@ -172,6 +172,25 @@ export function bookingConfirmationForClient(
   };
 }
 
+// Used when a session is created already CONFIRMED (psychologist manually
+// booking it) — unlike bookingConfirmationForClient, there's no "психолог
+// підтвердить" line since no further confirmation step is coming.
+export function sessionConfirmedForClient(
+  startAt: Date,
+  sessionId: string,
+  sessionMinutes?: number | null,
+  meetingUrl?: string | null
+): Message {
+  const when = formatKyiv(startAt, { dateStyle: "medium", timeStyle: "short" });
+  const length = lengthSuffix(sessionMinutes);
+  const statusUrl = sessionStatusUrl(sessionId);
+  return {
+    subject: "Підтвердження запису",
+    emailHtml: `<p>Вашу сесію заплановано на ${when}${length}. <a href="${statusUrl}">Перевірити статус запису</a>.${meetingHtml(meetingUrl)}</p>`,
+    telegramText: `Вашу сесію заплановано на ${when}${length}. Статус запису: ${statusUrl}${meetingText(meetingUrl)}`,
+  };
+}
+
 export function sessionReminderForClient(
   startAt: Date,
   sessionId: string,
@@ -188,23 +207,41 @@ export function sessionReminderForClient(
   };
 }
 
-export function sessionCancelledForClient(startAt: Date, sessionId: string): Message {
+// Comment is the psychologist's optional free-text explanation, entered at
+// cancel/reschedule time — it's relayed as-is to the client but never
+// persisted, so it only ever reaches them through this notification.
+function commentHtml(comment: string | undefined): string {
+  return comment ? ` <p>Коментар: ${comment}</p>` : "";
+}
+function commentText(comment: string | undefined): string {
+  return comment ? ` Коментар: ${comment}` : "";
+}
+
+export function sessionCancelledForClient(
+  startAt: Date,
+  sessionId: string,
+  comment?: string
+): Message {
   const when = formatKyiv(startAt, { dateStyle: "medium", timeStyle: "short" });
   const statusUrl = sessionStatusUrl(sessionId);
   return {
     subject: "Сесію скасовано",
-    emailHtml: `<p>Вашу сесію ${when} скасовано психологом. <a href="${statusUrl}">Переглянути статус запису</a>.</p>`,
-    telegramText: `Вашу сесію ${when} скасовано психологом. Статус запису: ${statusUrl}`,
+    emailHtml: `<p>Вашу сесію ${when} скасовано психологом. <a href="${statusUrl}">Переглянути статус запису</a>.</p>${commentHtml(comment)}`,
+    telegramText: `Вашу сесію ${when} скасовано психологом. Статус запису: ${statusUrl}${commentText(comment)}`,
   };
 }
 
-export function sessionRescheduledForClient(newStartAt: Date, sessionId: string): Message {
+export function sessionRescheduledForClient(
+  newStartAt: Date,
+  sessionId: string,
+  comment?: string
+): Message {
   const when = formatKyiv(newStartAt, { dateStyle: "medium", timeStyle: "short" });
   const statusUrl = sessionStatusUrl(sessionId);
   return {
     subject: "Сесію перенесено",
-    emailHtml: `<p>Вашу сесію перенесено на ${when}. <a href="${statusUrl}">Переглянути статус запису</a>.</p>`,
-    telegramText: `Вашу сесію перенесено на ${when}. Статус запису: ${statusUrl}`,
+    emailHtml: `<p>Вашу сесію перенесено на ${when}. <a href="${statusUrl}">Переглянути статус запису</a>.</p>${commentHtml(comment)}`,
+    telegramText: `Вашу сесію перенесено на ${when}. Статус запису: ${statusUrl}${commentText(comment)}`,
   };
 }
 

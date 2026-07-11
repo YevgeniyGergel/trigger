@@ -58,15 +58,20 @@ vi.mock("@/lib/integrations/busy-cache", () => ({
 }));
 vi.mock("@/lib/notifications", () => ({
   notifyClient: (...args: unknown[]) => notifyClient(...args),
-  sessionCancelledForClient: (startAt: Date, sessionId: string) => ({
+  sessionCancelledForClient: (startAt: Date, sessionId: string, comment?: string) => ({
     subject: "Сесію скасовано",
-    emailHtml: `cancelled ${sessionId}`,
-    telegramText: `cancelled ${sessionId}`,
+    emailHtml: `cancelled ${sessionId}${comment ? ` [${comment}]` : ""}`,
+    telegramText: `cancelled ${sessionId}${comment ? ` [${comment}]` : ""}`,
   }),
-  sessionRescheduledForClient: (startAt: Date, sessionId: string) => ({
+  sessionRescheduledForClient: (startAt: Date, sessionId: string, comment?: string) => ({
     subject: "Сесію перенесено",
-    emailHtml: `rescheduled ${sessionId} ${startAt.toISOString()}`,
-    telegramText: `rescheduled ${sessionId}`,
+    emailHtml: `rescheduled ${sessionId} ${startAt.toISOString()}${comment ? ` [${comment}]` : ""}`,
+    telegramText: `rescheduled ${sessionId}${comment ? ` [${comment}]` : ""}`,
+  }),
+  sessionConfirmedForClient: (startAt: Date, sessionId: string) => ({
+    subject: "Підтвердження запису",
+    emailHtml: `confirmed ${sessionId} ${startAt.toISOString()}`,
+    telegramText: `confirmed ${sessionId}`,
   }),
 }));
 
@@ -111,6 +116,42 @@ describe("cancelSession", () => {
     expect(sessionFindUnique).not.toHaveBeenCalled();
     expect(notifyClient).not.toHaveBeenCalled();
   });
+
+  it("includes the psychologist's comment in the cancellation notification", async () => {
+    sessionUpdateMany.mockResolvedValue({ count: 1 });
+    sessionFindUnique.mockResolvedValue({
+      id: "sess_1",
+      startAt: new Date("2026-07-20T10:00:00Z"),
+      client,
+    });
+
+    await cancelSession("sess_1", "  вибачте, захворів  ");
+
+    expect(notifyClient).toHaveBeenCalledWith(
+      client,
+      "CANCELLATION",
+      expect.objectContaining({ emailHtml: expect.stringContaining("вибачте, захворів") }),
+      "sess_1"
+    );
+  });
+
+  it("omits the comment from the notification when it is blank", async () => {
+    sessionUpdateMany.mockResolvedValue({ count: 1 });
+    sessionFindUnique.mockResolvedValue({
+      id: "sess_1",
+      startAt: new Date("2026-07-20T10:00:00Z"),
+      client,
+    });
+
+    await cancelSession("sess_1", "   ");
+
+    expect(notifyClient).toHaveBeenCalledWith(
+      client,
+      "CANCELLATION",
+      expect.objectContaining({ emailHtml: "cancelled sess_1" }),
+      "sess_1"
+    );
+  });
 });
 
 describe("rescheduleSession", () => {
@@ -121,9 +162,10 @@ describe("rescheduleSession", () => {
     notifyClient.mockReset();
   });
 
-  function formDataWith(startAtRaw: string) {
+  function formDataWith(startAtRaw: string, comment?: string) {
     const formData = new FormData();
     formData.set("startAt", startAtRaw);
+    if (comment !== undefined) formData.set("comment", comment);
     return formData;
   }
 
@@ -152,6 +194,32 @@ describe("rescheduleSession", () => {
     expect(type).toBe("RESCHEDULED");
     expect(message.subject).toBe("Сесію перенесено");
     expect(sessionId).toBe("sess_1");
+  });
+
+  it("includes the psychologist's comment in the reschedule notification", async () => {
+    const existingSession = {
+      id: "sess_1",
+      status: "CONFIRMED",
+      startAt: new Date("2026-07-20T10:00:00.000Z"),
+      endAt: new Date("2026-07-20T11:00:00.000Z"),
+      client,
+    };
+    const tx = {
+      session: {
+        findFirst: vi.fn().mockResolvedValue(existingSession),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(tx));
+
+    await rescheduleSession(
+      "sess_1",
+      {},
+      formDataWith("2026-07-21T15:30", "  зручніше вранці  ")
+    );
+
+    const message = notifyClient.mock.calls[0][2];
+    expect(message.emailHtml).toContain("зручніше вранці");
   });
 
   it("does not notify when the reschedule fails (e.g. slot conflict)", async () => {
@@ -230,6 +298,7 @@ describe("createManualSession", () => {
     checkSlotConflict.mockReset().mockResolvedValue(null);
     transaction.mockReset();
     redirect.mockReset();
+    notifyClient.mockReset();
   });
 
   function formDataWith(overrides: Partial<{ clientId: string; serviceTypeId: string; startAt: string }> = {}) {
@@ -283,5 +352,39 @@ describe("createManualSession", () => {
 
     expect(result.error).toBe("У цей час вже є інша сесія");
     expect(tx.session.create).not.toHaveBeenCalled();
+  });
+
+  it("allows booking outside working hours (manual creation overrides that check)", async () => {
+    const tx = {
+      session: {
+        create: vi.fn().mockResolvedValue({ id: "sess_new" }),
+      },
+    };
+    transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(tx));
+
+    await expect(createManualSession({}, formDataWith())).rejects.toThrow(RedirectSentinel);
+
+    expect(checkSlotConflict).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({ skipWorkingHours: true })
+    );
+  });
+
+  it("notifies the client that their session was booked", async () => {
+    const tx = {
+      session: {
+        create: vi.fn().mockResolvedValue({ id: "sess_new" }),
+      },
+    };
+    transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(tx));
+
+    await expect(createManualSession({}, formDataWith())).rejects.toThrow(RedirectSentinel);
+
+    expect(notifyClient).toHaveBeenCalledWith(
+      client,
+      "BOOKING_CONFIRMATION",
+      expect.objectContaining({ subject: "Підтвердження запису" }),
+      "sess_new"
+    );
   });
 });

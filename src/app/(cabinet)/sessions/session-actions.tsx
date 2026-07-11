@@ -10,7 +10,7 @@ import {
   updateSessionPrice,
 } from "./actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/field";
+import { Input, Textarea } from "@/components/ui/field";
 
 const PAYMENT_STATUS_LABELS: Record<string, { label: string; className: string }> = {
   NONE: { label: "без оплати", className: "text-ink-faint" },
@@ -43,7 +43,7 @@ function PriceEditor({ sessionId, priceCents }: { sessionId: string; priceCents:
         onChange={(e) => setValue(e.target.value)}
         placeholder="грн"
         aria-label="Вартість сесії, грн"
-        className="w-20 min-w-0 flex-1 px-2 py-1 text-xs"
+        className="min-w-[4.5rem] flex-1 px-2 py-1 text-xs"
       />
       <Button
         type="button"
@@ -118,6 +118,8 @@ export function SessionActions({
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
   const [rescheduling, setRescheduling] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelComment, setCancelComment] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const showLifecycleActions = status !== "CANCELLED" && status !== "COMPLETED";
@@ -167,6 +169,12 @@ export function SessionActions({
                   defaultValue={toDatetimeLocalValue(new Date(startAt))}
                   className="min-w-0 px-2 py-1 text-xs"
                 />
+                <Textarea
+                  name="comment"
+                  placeholder="Коментар для клієнта (необов'язково)"
+                  rows={2}
+                  className="min-w-0 px-2 py-1 text-xs"
+                />
                 {error ? (
                   <p className="text-xs text-danger" role="alert">
                     {error}
@@ -189,12 +197,61 @@ export function SessionActions({
                   </Button>
                 </div>
               </form>
+            ) : cancelling ? (
+              <div className="mt-2 space-y-1.5">
+                <Textarea
+                  value={cancelComment}
+                  onChange={(e) => setCancelComment(e.target.value)}
+                  placeholder="Коментар для клієнта (необов'язково)"
+                  rows={2}
+                  className="min-w-0 px-2 py-1 text-xs"
+                />
+                {error ? (
+                  <p className="text-xs text-danger" role="alert">
+                    {error}
+                  </p>
+                ) : null}
+                <div className="flex flex-wrap gap-1.5">
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    disabled={pending}
+                    onClick={() =>
+                      startTransition(async () => {
+                        const result = await cancelSession(sessionId, cancelComment);
+                        if (result.error) {
+                          setError(result.error);
+                        } else {
+                          setError(null);
+                          setCancelling(false);
+                        }
+                        router.refresh();
+                      })
+                    }
+                  >
+                    {pending ? "..." : "Підтвердити скасування"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCancelling(false);
+                      setCancelComment("");
+                      setError(null);
+                    }}
+                  >
+                    Відмінити
+                  </Button>
+                </div>
+              </div>
             ) : (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {status === "PENDING" ? (
                   <Button
                     type="button"
-                    variant="secondary"
+                    variant="primary"
                     size="sm"
                     disabled={pending}
                     onClick={() =>
@@ -210,7 +267,7 @@ export function SessionActions({
                 ) : null}
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="secondary"
                   size="sm"
                   onClick={() => setRescheduling(true)}
                 >
@@ -218,17 +275,9 @@ export function SessionActions({
                 </Button>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="danger"
                   size="sm"
-                  disabled={pending}
-                  onClick={() =>
-                    startTransition(async () => {
-                      const result = await cancelSession(sessionId);
-                      setError(result.error ?? null);
-                      router.refresh();
-                    })
-                  }
-                  className="text-danger hover:bg-danger-soft hover:text-danger"
+                  onClick={() => setCancelling(true)}
                 >
                   Скасувати
                 </Button>

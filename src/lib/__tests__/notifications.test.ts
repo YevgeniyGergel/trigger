@@ -194,11 +194,37 @@ describe("message builders", () => {
     expect(msg.telegramText).toContain("/session/sess_1");
   });
 
+  it("sessionCancelledForClient omits the comment line when no comment is given", () => {
+    const msg = sessionCancelledForClient(startAt, "sess_1");
+    expect(msg.emailHtml).not.toContain("Коментар:");
+    expect(msg.telegramText).not.toContain("Коментар:");
+  });
+
+  it("sessionCancelledForClient includes the psychologist's comment when given", () => {
+    const msg = sessionCancelledForClient(startAt, "sess_1", "вибачте, захворів");
+    expect(msg.emailHtml).toContain("вибачте, захворів");
+    expect(msg.telegramText).toContain("вибачте, захворів");
+  });
+
   it("sessionRescheduledForClient includes the new time and the status page link", () => {
     const newStartAt = new Date("2026-07-14T11:00:00");
     const msg = sessionRescheduledForClient(newStartAt, "sess_1");
     expect(msg.subject).toBe("Сесію перенесено");
     expect(msg.emailHtml).toContain("/session/sess_1");
+  });
+
+  it("sessionRescheduledForClient omits the comment line when no comment is given", () => {
+    const newStartAt = new Date("2026-07-14T11:00:00");
+    const msg = sessionRescheduledForClient(newStartAt, "sess_1");
+    expect(msg.emailHtml).not.toContain("Коментар:");
+    expect(msg.telegramText).not.toContain("Коментар:");
+  });
+
+  it("sessionRescheduledForClient includes the psychologist's comment when given", () => {
+    const newStartAt = new Date("2026-07-14T11:00:00");
+    const msg = sessionRescheduledForClient(newStartAt, "sess_1", "зручніше вранці");
+    expect(msg.emailHtml).toContain("зручніше вранці");
+    expect(msg.telegramText).toContain("зручніше вранці");
   });
 
   it("paymentStatusForClient includes a retry link only on failure", () => {

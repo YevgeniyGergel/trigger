@@ -113,6 +113,29 @@ describe("checkSlotConflict", () => {
     expect(result).toBe("session_overlap");
   });
 
+  it("skips the working-hours check when skipWorkingHours is set, but still checks overlap", async () => {
+    const tx = fakeTx({ workingHours: [] });
+    const result = await checkSlotConflict(tx, {
+      psychologistId: "p1",
+      startAt: monday10,
+      endAt: monday11,
+      skipWorkingHours: true,
+    });
+    expect(result).toBeNull();
+    expect(tx.workingHour.findMany).not.toHaveBeenCalled();
+  });
+
+  it("still returns session_overlap when skipWorkingHours is set", async () => {
+    const tx = fakeTx({ workingHours: [], sessionConflict: { id: "s1" } });
+    const result = await checkSlotConflict(tx, {
+      psychologistId: "p1",
+      startAt: monday10,
+      endAt: monday11,
+      skipWorkingHours: true,
+    });
+    expect(result).toBe("session_overlap");
+  });
+
   it("excludes the given session id from the overlap check (reschedule flow)", async () => {
     const tx = fakeTx({ workingHours: [{ startTime: "09:00", endTime: "17:00" }] });
     await checkSlotConflict(tx, {
