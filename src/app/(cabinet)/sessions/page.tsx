@@ -6,7 +6,8 @@ import { getZonedParts, formatKyiv } from "@/lib/timezone";
 import { SessionActions } from "./session-actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Card, CardBody } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const DAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
 
@@ -20,27 +21,130 @@ const STATUS_BADGES: Record<
   COMPLETED: { label: "завершено", tone: "success" },
 };
 
+function FilterTabs({
+  active,
+  pendingCount,
+}: {
+  active: "week" | "pending";
+  pendingCount: number;
+}) {
+  const tabs = [
+    { key: "week" as const, label: "Тиждень", href: "/sessions" },
+    {
+      key: "pending" as const,
+      label: `Очікують підтвердження${pendingCount > 0 ? ` · ${pendingCount}` : ""}`,
+      href: "/sessions?status=pending",
+    },
+  ];
+  return (
+    <div className="mt-6 flex flex-wrap gap-2">
+      {tabs.map((tab) => (
+        <Link
+          key={tab.key}
+          href={tab.href}
+          aria-current={active === tab.key ? "page" : undefined}
+          className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            active === tab.key
+              ? "bg-sage-600 text-white shadow-soft"
+              : "border border-line bg-surface text-ink-muted hover:bg-sand-100 hover:text-ink"
+          }`}
+        >
+          {tab.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export default async function SessionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ week?: string; status?: string }>;
 }) {
-  const { week } = await searchParams;
+  const { week, status } = await searchParams;
   const psychologist = await requireCurrentPsychologist();
+  const showPending = status === "pending";
 
   const weekStart = startOfWeek(parseDateParam(week));
   const weekEnd = addDays(weekStart, 7);
   const prevWeek = toDateParam(addDays(weekStart, -7));
   const nextWeek = toDateParam(addDays(weekStart, 7));
 
-  const sessions = await prisma.session.findMany({
-    where: {
-      psychologistId: psychologist.id,
-      startAt: { gte: weekStart, lt: weekEnd },
-    },
-    orderBy: { startAt: "asc" },
-    include: { client: true },
-  });
+  const [sessions, pendingSessions] = await Promise.all([
+    showPending
+      ? Promise.resolve([])
+      : prisma.session.findMany({
+          where: {
+            psychologistId: psychologist.id,
+            startAt: { gte: weekStart, lt: weekEnd },
+          },
+          orderBy: { startAt: "asc" },
+          include: { client: true },
+        }),
+    prisma.session.findMany({
+      where: { psychologistId: psychologist.id, status: "PENDING" },
+      orderBy: { startAt: "asc" },
+      include: { client: true },
+    }),
+  ]);
+
+  if (showPending) {
+    return (
+      <div>
+        <PageHeader
+          eyebrow="Потребують уваги"
+          title="Сесії"
+          description="Усі запити на сесії, які ще не підтверджено, — незалежно від тижня."
+        />
+        <FilterTabs active="pending" pendingCount={pendingSessions.length} />
+
+        {pendingSessions.length === 0 ? (
+          <div className="mt-6">
+            <EmptyState
+              title="Немає непідтверджених сесій"
+              description="Коли клієнт запишеться на сесію, вона з'явиться тут для підтвердження."
+            />
+          </div>
+        ) : (
+          <ul className="mt-6 space-y-3">
+            {pendingSessions.map((s) => (
+              <li key={s.id}>
+                <Card>
+                  <CardBody className="p-4 sm:p-5">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <div className="flex flex-wrap items-baseline gap-3">
+                        <span className="font-display text-lg font-medium text-ink">
+                          {formatKyiv(s.startAt, {
+                            weekday: "short",
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })}
+                          , {formatKyiv(s.startAt, { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        <span className="font-medium text-ink">{s.client.name}</span>
+                      </div>
+                      <Badge tone="warning">очікує підтвердження</Badge>
+                    </div>
+                    <div className="mt-1 max-w-md text-xs">
+                      <SessionActions
+                        sessionId={s.id}
+                        status={s.status}
+                        startAt={s.startAt.toISOString()}
+                        priceCents={s.priceCents}
+                        paymentStatus={s.paymentStatus}
+                        defaultOpen
+                      />
+                    </div>
+                  </CardBody>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const todayParts = getZonedParts(new Date());
@@ -81,8 +185,9 @@ export default async function SessionsPage({
           </div>
         }
       />
+      <FilterTabs active="week" pendingCount={pendingSessions.length} />
 
-      <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-7">
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-7">
         {days.map((day, i) => {
           const daySessions = sessions.filter(
             (s) => s.startAt >= day && s.startAt < addDays(day, 1)
@@ -116,21 +221,21 @@ export default async function SessionsPage({
                 ) : (
                   <ul className="space-y-2.5">
                     {daySessions.map((s) => {
-                      const status = STATUS_BADGES[s.status];
+                      const sessionStatus = STATUS_BADGES[s.status];
                       return (
                         <li
                           key={s.id}
-                          className="rounded-xl bg-sand-100/70 p-2.5 text-xs"
+                          className="min-w-0 rounded-xl bg-sand-100/70 p-2.5 text-xs"
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-display text-sm font-medium text-ink">
                               {formatKyiv(s.startAt, { hour: "2-digit", minute: "2-digit" })}
                             </span>
-                            <Badge tone={status?.tone ?? "neutral"}>
-                              {status?.label ?? s.status}
+                            <Badge tone={sessionStatus?.tone ?? "neutral"}>
+                              {sessionStatus?.label ?? s.status}
                             </Badge>
                           </div>
-                          <div className="mt-1 font-medium text-ink">
+                          <div className="mt-1 truncate font-medium text-ink">
                             {s.client.name}
                           </div>
                           <SessionActions

@@ -9,6 +9,9 @@ import { Alert } from "@/components/ui/alert";
 const initialState: WorkingHoursFormState = {};
 
 const WEEKDAY_LABELS = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+// Тиждень в Україні починається з понеділка; weekday-індекси в базі
+// лишаються 0 = неділя, змінюється лише порядок відображення.
+const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 type Rule = { weekday: number; startTime: string; endTime: string };
 
@@ -22,7 +25,8 @@ export function WorkingHoursForm({ initialRules }: { initialRules: Rule[] }) {
 
   return (
     <form action={formAction} className="space-y-2">
-      {WEEKDAY_LABELS.map((label, weekday) => {
+      {WEEKDAY_ORDER.map((weekday) => {
+        const label = WEEKDAY_LABELS[weekday];
         const rule = ruleFor(weekday);
         return (
           <div

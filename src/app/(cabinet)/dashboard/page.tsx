@@ -31,7 +31,7 @@ export default async function DashboardPage() {
   const stats = [
     { label: "Активних клієнтів", value: activeClients, href: "/clients" },
     { label: "Сесій цього тижня", value: weekSessions, href: "/sessions" },
-    { label: "Очікують підтвердження", value: pendingSessions, href: "/sessions" },
+    { label: "Очікують підтвердження", value: pendingSessions, href: "/sessions?status=pending" },
   ];
 
   return (
