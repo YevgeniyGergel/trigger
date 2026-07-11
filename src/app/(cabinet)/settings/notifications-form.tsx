@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   updateNotificationPreferences,
   generateTelegramLink,
@@ -32,6 +33,19 @@ export function NotificationsForm({
     prefsInitialState
   );
   const [linkState, linkAction, linkPending] = useActionState(generateTelegramLink, linkInitialState);
+
+  const router = useRouter();
+  useEffect(() => {
+    if (telegramLinked) return;
+    // Telegram linking completes via a server-to-server webhook while the
+    // user is off in the Telegram app/tab — refresh on return so the badge
+    // reflects that without requiring a manual page reload.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") router.refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [telegramLinked, router]);
 
   return (
     <Card>
